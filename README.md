@@ -2,24 +2,228 @@
 
 > Unified repository for OpenBook V2 DEX: smart contracts, deployment scripts, and event indexer
 
-## Quick Start
+## Quick Start (Already Set Up)
+
+If you already have everything installed:
 
 ```bash
-# 1. Install dependencies
-pnpm install
+pnpm deploy-local    # Deploy markets
+pnpm view-markets    # View markets
+pnpm post-order      # Place order
+```
 
-# 2. Start local validator with pre-built programs
+**First time?** See [Complete Setup](#complete-setup) below.
+
+## Complete Setup
+
+### 1. Install Prerequisites
+
+<details>
+<summary><b>macOS</b></summary>
+
+```bash
+# Install Homebrew (if not installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Node.js and pnpm
+brew install node
+npm install -g pnpm
+
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+
+# Install Solana CLI
+sh -c "$(curl -sSfL https://release.solana.com/v1.18.23/install)"
+
+# Install Anchor CLI
+cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+avm install 0.28.0
+avm use 0.28.0
+
+# Install PostgreSQL (for indexer)
+brew install postgresql@14
+brew services start postgresql@14
+```
+</details>
+
+<details>
+<summary><b>Linux</b></summary>
+
+```bash
+# Install Node.js and pnpm
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+npm install -g pnpm
+
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+
+# Install dependencies
+sudo apt-get update
+sudo apt-get install -y pkg-config build-essential libudev-dev libssl-dev
+
+# Install Solana CLI
+sh -c "$(curl -sSfL https://release.solana.com/v1.18.23/install)"
+
+# Install Anchor CLI
+cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+avm install 0.28.0
+avm use 0.28.0
+
+# Install PostgreSQL (for indexer)
+sudo apt-get install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+```
+</details>
+
+**Verify installation:**
+```bash
+node --version        # Should be ≥18
+pnpm --version        # Should be ≥8
+rustc --version       # Should show 1.79.0 (auto-set by rust-toolchain.toml)
+solana --version      # Should be 1.18.23
+anchor --version      # Should be 0.28.0
+psql --version        # Should be ≥14
+```
+
+### 2. Download Pre-built Programs
+
+```bash
+# Create tmp directory if it doesn't exist
+mkdir -p /tmp
+
+# Download OpenBook V2 program
+solana program dump opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb \
+  /tmp/openbook_v2.so \
+  --url https://api.devnet.solana.com
+
+# Download Metaplex Token Metadata program
+solana program dump metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s \
+  /tmp/metaplex_token_metadata.so \
+  --url https://api.devnet.solana.com
+
+# Verify downloads
+ls -lh /tmp/*.so
+```
+
+**Why pre-built?** Due to Rust toolchain constraints (need 1.79.0 for BPF, but Solana 1.18.23 deps need 1.85+), we use pre-built programs from devnet.
+
+### 3. Set Up Wallet
+
+```bash
+# Create a new wallet (or use existing)
+solana-keygen new --outfile ~/.config/solana/id.json
+
+# Set Solana config to localhost
+solana config set --url http://localhost:8899
+
+# Verify wallet
+solana address
+```
+
+### 4. Install Project Dependencies
+
+```bash
+# Install all workspace dependencies
+pnpm install
+```
+
+### 5. Start Local Validator & Deploy
+
+```bash
+# Start validator with pre-built programs
 solana-test-validator --reset \
   --bpf-program opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb /tmp/openbook_v2.so \
   --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/metaplex_token_metadata.so \
   --quiet &
 
-# 3. Deploy markets
+# Wait for validator to start (5-10 seconds)
+sleep 10
+
+# Airdrop SOL to your wallet
+solana airdrop 100
+
+# Deploy tokens and markets
 pnpm deploy-local
 
-# 4. View markets
+# View deployed markets
 pnpm view-markets
 ```
+
+**Verify setup:**
+```bash
+# Check validator is running
+solana cluster-version
+
+# Check balance
+solana balance
+
+# View markets
+pnpm view-markets
+
+# Place a test order
+pnpm post-order
+```
+
+### 6. Set Up Indexer (Optional)
+
+<details>
+<summary><b>Click to expand indexer setup</b></summary>
+
+#### Create Database
+
+```bash
+# Create database
+createdb openbook_indexer
+
+# Apply schema
+psql openbook_indexer < crates/indexer/schema.sql
+
+# Verify database
+psql openbook_indexer -c "\dt"
+```
+
+#### Configure Environment
+
+```bash
+# Copy example env file
+cp crates/indexer/.env.example crates/indexer/.env
+
+# Edit with your settings
+cat > crates/indexer/.env << EOF
+RPC_URL=http://127.0.0.1:8899
+DATABASE_URL=postgresql://$(whoami)@localhost/openbook_indexer
+PORT=3000
+LOG_LEVEL=info
+EOF
+```
+
+#### Start Indexer Services
+
+```bash
+# Terminal 1: Start API server
+pnpm indexer:api
+
+# Terminal 2: Start event listener
+pnpm indexer:listener
+```
+
+#### Verify Indexer
+
+```bash
+# Check API health
+curl http://localhost:3000/health
+
+# View indexed markets
+curl http://localhost:3000/markets
+
+# Check database
+psql openbook_indexer -c "SELECT COUNT(*) FROM markets;"
+```
+
+</details>
 
 ## Project Structure
 
@@ -57,20 +261,24 @@ pnpm lint      # Lint all code
 pnpm clean     # Clean build artifacts
 ```
 
-## Prerequisites
+## Prerequisites Summary
 
-- **Rust**: 1.79.0 (auto-managed via `rust-toolchain.toml`)
-- **Solana CLI**: 1.18.23
-- **Anchor CLI**: 0.28.0
-- **Node.js**: ≥18
-- **pnpm**: ≥8
-- **PostgreSQL**: ≥14 (for indexer)
+| Tool | Version | Required For |
+|------|---------|--------------|
+| Node.js | ≥18 | Scripts |
+| pnpm | ≥8 | Package management |
+| Rust | 1.79.0 | Building (auto-managed) |
+| Solana CLI | 1.18.23 | Validator & deployment |
+| Anchor CLI | 0.28.0 | Smart contracts |
+| PostgreSQL | ≥14 | Indexer (optional) |
+
+See [Complete Setup](#complete-setup) for installation instructions.
 
 ## Documentation
 
-- 📘 [Setup Guide](docs/MONOREPO_README.md) - Complete setup instructions
-- 📗 [Deployment Guide](docs/guides/DEPLOYMENT_SUMMARY.md) - Token & market deployment
-- 📙 [All Guides](docs/README.md) - Full documentation index
+- 📘 **This README** - Complete setup and usage guide
+- 📗 [Local Docs](docs/README.md) - Additional guides and references (local only, not in git)
+- 📕 [Component READMEs](#components) - Detailed docs for each component
 
 ## Components
 
@@ -99,55 +307,125 @@ High-performance Rust indexer for OpenBook events.
 - Real-time event processing
 - PostgreSQL storage
 
-## Environment Setup
+## Environment Configuration
 
-### Scripts
+### Scripts (Optional)
 
-Create `packages/scripts/.env`:
+By default, scripts use `http://localhost:8899` and `~/.config/solana/id.json`.
+
+To customize, create `packages/scripts/.env`:
 ```env
 ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
 ANCHOR_WALLET=/path/to/your/keypair.json
 ```
 
-### Indexer
+### Indexer (If Using)
 
-Create `crates/indexer/.env`:
-```env
-RPC_URL=http://127.0.0.1:8899
-DATABASE_URL=postgresql://user:password@localhost/openbook_indexer
-PORT=3000
-```
-
-## Why Pre-built Programs?
-
-Due to Rust toolchain constraints (need 1.79.0 for BPF, but Solana 1.18.23 deps need 1.85+), we use pre-built programs from devnet:
-
-```bash
-# Download once
-solana program dump opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb /tmp/openbook_v2.so --url https://api.devnet.solana.com
-solana program dump metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/metaplex_token_metadata.so --url https://api.devnet.solana.com
-```
+See [Set Up Indexer](#6-set-up-indexer-optional) in Complete Setup section.
 
 ## Troubleshooting
 
-### Validator won't start
+### Validator Issues
+
+**Validator won't start:**
 ```bash
+# Kill any existing validators
 pkill -9 -f solana-test-validator
+
+# Remove old ledger
 rm -rf test-ledger/
+
 # Restart with fresh state
+solana-test-validator --reset \
+  --bpf-program opnb2LAfJYbRMAHHvqjCwqxanZn7ReEHp1k81EohpZb /tmp/openbook_v2.so \
+  --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/metaplex_token_metadata.so \
+  --quiet &
 ```
 
-### Wrong Rust version
+**Connection refused:**
+```bash
+# Check validator is running
+solana cluster-version
+
+# Check Solana config
+solana config get
+
+# Should show: RPC URL: http://localhost:8899
+```
+
+**No SOL in wallet:**
+```bash
+solana airdrop 100
+```
+
+### Deployment Issues
+
+**Program not found:**
+```bash
+# Verify programs exist
+ls -lh /tmp/*.so
+
+# Re-download if missing (see Complete Setup)
+```
+
+**Transaction fails:**
+```bash
+# Check balance
+solana balance
+
+# Airdrop more SOL if needed
+solana airdrop 100
+```
+
+### Indexer Issues
+
+**Database connection fails:**
+```bash
+# Check PostgreSQL is running
+pg_isready
+
+# macOS
+brew services restart postgresql@14
+
+# Linux
+sudo systemctl restart postgresql
+```
+
+**Schema not applied:**
+```bash
+# Reapply schema
+psql openbook_indexer < crates/indexer/schema.sql
+```
+
+**Can't connect to RPC:**
+```bash
+# Verify validator is running and RPC URL is correct in .env
+curl http://localhost:8899 -X POST -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}'
+```
+
+### Build Issues
+
+**Wrong Rust version:**
 ```bash
 rustc --version  # Should show 1.79.0
+
+# Force correct version
 rustup override set 1.79.0
 ```
 
-### pnpm issues
+**pnpm install fails:**
 ```bash
+# Clear cache and reinstall
 pnpm store prune
 rm -rf node_modules packages/*/node_modules
 pnpm install
+```
+
+**Cargo build fails:**
+```bash
+# Clean and rebuild
+cargo clean
+cargo build
 ```
 
 ## Contributing
