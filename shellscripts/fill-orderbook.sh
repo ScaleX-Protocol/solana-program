@@ -129,6 +129,7 @@ echo ""
 export SOLANA_RPC_URL
 export NUM_TRADERS
 export ORDERS_PER_TRADER
+export ANCHOR_WALLET="${HOME}/.config/solana/id.json"
 
 pnpm multi-wallet-trade
 
