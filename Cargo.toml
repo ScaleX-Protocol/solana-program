@@ -1,0 +1,67 @@
+[workspace]
+resolver = "2"
+members = [
+  "programs/openbook-v2/lib/client",
+  "programs/openbook-v2/programs/*",
+  "crates/indexer",
+]
+
+[workspace.dependencies]
+# Anchor
+anchor-client = "0.29.0"
+anchor-lang = "0.29.0"
+anchor-spl = "0.29.0"
+
+# Solana
+solana-account-decoder = "~1.18.23"
+solana-client = "~1.18.23"
+solana-logger = "~1.18.23"
+solana-program = "~1.18.23"
+solana-program-test = "~1.18.23"
+solana-rpc = "~1.18.23"
+solana-sdk = "~1.18.23"
+solana-transaction-status = "~1.18.23"
+
+# SPL
+spl-associated-token-account = "1.0.3"
+
+# OpenBook specific
+fixed = { git = "https://github.com/blockworks-foundation/fixed.git", branch = "v1.11.0-borsh0_10-mango" }
+pyth-sdk-solana = "0.10.1"
+
+# Web framework (for indexer)
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Database
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
+deadpool-postgres = "0.14"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+dotenv = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+anyhow = "1.0"
+thiserror = "1.0"
+futures = "0.3"
+async-trait = "0.1"
+colored = "2.1"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+overflow-checks = true
+
+[profile.release.build-override]
+codegen-units = 1
+incremental = false
+opt-level = 3

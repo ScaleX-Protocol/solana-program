@@ -1,0 +1,31 @@
+{
+  "name": "openbook-monorepo",
+  "version": "1.0.0",
+  "description": "OpenBook V2 Monorepo - Smart Contracts, Scripts, and Indexer",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean && cargo clean",
+    "format": "pnpm -r format && cargo fmt --all",
+    "lint": "pnpm -r lint && cargo clippy --all-targets --all-features",
+    "deploy-local": "pnpm --filter scripts deploy-local-fixed",
+    "view-markets": "pnpm --filter scripts view-markets",
+    "post-order": "pnpm --filter scripts post-order",
+    "indexer:api": "cargo run --bin api-server",
+    "indexer:listener": "cargo run --bin event-listener"
+  },
+  "keywords": ["solana", "openbook", "dex", "monorepo"],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-token-metadata": "^3.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
