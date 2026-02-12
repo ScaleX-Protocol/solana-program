@@ -5,8 +5,7 @@ import {
   OpenBookV2Client,
   PlaceOrderArgs,
   Side,
-  PlaceOrderType,
-  SelfTradeBehavior,
+  findAllMarkets,
 } from "@openbook-dex/openbook-v2";
 import { MintUtils } from "./mint_utils";
 import * as os from "os";
@@ -25,12 +24,12 @@ interface MarketInfo {
   name: string;
 }
 
-async function getMarkets(client: OpenBookV2Client): Promise<MarketInfo[]> {
-  const markets = await client.findAllMarkets();
-  return markets.map(m => ({
-    address: m.market,
-    baseMint: m.baseMint,
-    quoteMint: m.quoteMint,
+async function getMarkets(connection: Connection, provider: AnchorProvider): Promise<MarketInfo[]> {
+  const markets = await findAllMarkets(connection, PROGRAM_ID, provider);
+  return markets.map((m: any) => ({
+    address: new PublicKey(m.market),
+    baseMint: new PublicKey(m.baseMint),
+    quoteMint: new PublicKey(m.quoteMint),
     name: m.name,
   }));
 }
@@ -67,58 +66,47 @@ async function fundWallet(
 }
 
 async function setupTraderTokenAccounts(
-  client: OpenBookV2Client,
-  mintUtils: MintUtils,
+  connection: Connection,
+  authority: Keypair,
   trader: Keypair,
   market: MarketInfo
 ): Promise<void> {
+  const mintUtils = new MintUtils(connection, authority);
+
   // Create token accounts
-  await mintUtils.getOrCreateAssociatedTokenAccount(
+  const baseAcc = await mintUtils.getOrCreateTokenAccount(
     market.baseMint,
+    authority,
     trader.publicKey
   );
-  await mintUtils.getOrCreateAssociatedTokenAccount(
+  const quoteAcc = await mintUtils.getOrCreateTokenAccount(
     market.quoteMint,
+    authority,
     trader.publicKey
   );
 
   // Mint tokens
-  const baseDecimals = await mintUtils.getDecimals(market.baseMint);
-  const quoteDecimals = await mintUtils.getDecimals(market.quoteMint);
-
-  await mintUtils.mintTo(
-    market.baseMint,
-    trader.publicKey,
-    1000 * 10 ** baseDecimals
-  );
-  await mintUtils.mintTo(
-    market.quoteMint,
-    trader.publicKey,
-    100000 * 10 ** quoteDecimals
-  );
+  await mintUtils.mintTo(market.baseMint, baseAcc.address);
+  await mintUtils.mintTo(market.quoteMint, quoteAcc.address);
 }
 
 async function placeOrderForTrader(
-  client: OpenBookV2Client,
+  connection: Connection,
   trader: Keypair,
   market: MarketInfo,
+  marketAccount: any,
   side: Side,
   price: number,
   size: number,
-  orderType: PlaceOrderType
+  orderType: any
 ): Promise<void> {
   const traderWallet = new Wallet(trader);
   const traderProvider = new AnchorProvider(
-    client.program.provider.connection,
+    connection,
     traderWallet,
-    { commitment: "processed", preflightCommitment: "processed" }
+    { commitment: "confirmed" }
   );
-  const traderClient = new OpenBookV2Client(traderProvider, PROGRAM_ID);
-
-  const indexerAccount = PublicKey.findProgramAddressSync(
-    [Buffer.from("Indexer")],
-    traderClient.programId
-  )[0];
+  const traderClient = new OpenBookV2Client(traderProvider);
 
   const [openOrdersAccount] = PublicKey.findProgramAddressSync(
     [
@@ -126,45 +114,66 @@ async function placeOrderForTrader(
       trader.publicKey.toBuffer(),
       market.address.toBuffer(),
     ],
-    traderClient.programId
+    PROGRAM_ID
   );
 
   // Create open orders account if needed
   try {
-    const openOrdersInfo = await traderClient.program.provider.connection.getAccountInfo(
-      openOrdersAccount
-    );
+    const openOrdersInfo = await connection.getAccountInfo(openOrdersAccount);
     if (!openOrdersInfo) {
       await traderClient.createOpenOrders(trader.publicKey, market.address, "trader");
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   } catch (error) {
     await traderClient.createOpenOrders(trader.publicKey, market.address, "trader");
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
+
+  const mintUtils = new MintUtils(connection, trader);
+  const userBaseAcc = await mintUtils.getOrCreateTokenAccount(
+    market.baseMint,
+    trader,
+    trader.publicKey
+  );
+  const userQuoteAcc = await mintUtils.getOrCreateTokenAccount(
+    market.quoteMint,
+    trader,
+    trader.publicKey
+  );
 
   const orderArgs: PlaceOrderArgs = {
     side,
     priceLots: new BN(price),
     maxBaseLots: new BN(size),
-    maxQuoteLotsIncludingFees: new BN(price * size * 1.01),
+    maxQuoteLotsIncludingFees: new BN(price * size * 2),
     clientOrderId: new BN(Date.now()),
     orderType,
     expiryTimestamp: new BN(0),
-    selfTradeBehavior: SelfTradeBehavior.decrementTake,
+    selfTradeBehavior: { decrementTake: {} },
     limit: 10,
   };
 
   try {
-    await traderClient.placeOrder(
+    const userTokenAcc = side.bid ? userQuoteAcc.address : userBaseAcc.address;
+    const [ix, signers] = await traderClient.placeOrderIx(
       openOrdersAccount,
       market.address,
-      orderArgs
+      marketAccount,
+      userTokenAcc,
+      null,
+      orderArgs,
+      []
     );
+
+    await traderClient.sendAndConfirmTransaction([ix], {
+      additionalSigners: signers ? [signers] : [],
+    });
 
     const sideStr = side.bid ? "BUY" : "SELL";
     const typeStr = orderType.limit ? "LIMIT" : "MARKET";
     console.log(`   ✅ ${trader.publicKey.toBase58().slice(0, 8)}... placed ${typeStr} ${sideStr} order`);
   } catch (error: any) {
-    console.log(`   ❌ Failed to place order: ${error.message}`);
+    console.log(`   ❌ Failed to place order: ${error.message?.split('\n')[0] || error}`);
   }
 }
 
@@ -175,13 +184,13 @@ async function main() {
   const authorityFile = `${os.homedir()}/.config/solana/id.json`;
   const authority = getKeypairFromFile(authorityFile);
   const wallet = new Wallet(authority);
+  const connection = new Connection(RPC, { commitment: "confirmed" });
   const provider = new AnchorProvider(
-    new Connection(RPC, { commitment: "processed" }),
+    connection,
     wallet,
-    { commitment: "processed", preflightCommitment: "processed" }
+    { commitment: "confirmed" }
   );
-  const client = new OpenBookV2Client(provider, PROGRAM_ID);
-  const mintUtils = new MintUtils(provider, authority);
+  const client = new OpenBookV2Client(provider);
 
   console.log("🔑 Authority:", authority.publicKey.toBase58());
   console.log("🌐 RPC:", RPC);
@@ -191,7 +200,7 @@ async function main() {
 
   // Get markets
   console.log("📊 Fetching markets...");
-  const markets = await getMarkets(client);
+  const markets = await getMarkets(connection, provider);
   if (markets.length === 0) {
     throw new Error("No markets found. Please deploy first.");
   }
@@ -203,6 +212,12 @@ async function main() {
   console.log(`   Market: ${market.address.toBase58()}`);
   console.log(`   Base:   ${market.baseMint.toBase58()}`);
   console.log(`   Quote:  ${market.quoteMint.toBase58()}\n`);
+
+  // Get market account
+  const marketAccount = await client.deserializeMarketAccount(market.address);
+  if (!marketAccount) {
+    throw new Error("Failed to deserialize market account");
+  }
 
   // Generate trader keypairs
   console.log("👥 Setting up traders...");
@@ -216,16 +231,16 @@ async function main() {
   // Fund traders
   console.log("💰 Funding traders with SOL...");
   for (const trader of traders) {
-    await fundWallet(provider.connection, trader.publicKey, 2);
+    await fundWallet(connection, trader.publicKey, 2);
   }
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
   console.log("");
 
   // Setup token accounts and mint tokens
   console.log("🪙 Setting up token accounts and minting tokens...");
   for (let i = 0; i < traders.length; i++) {
     console.log(`   Trader ${i + 1}/${traders.length}...`);
-    await setupTraderTokenAccounts(client, mintUtils, traders[i], market);
+    await setupTraderTokenAccounts(connection, authority, traders[i], market);
   }
   console.log("");
 
@@ -241,30 +256,32 @@ async function main() {
       // Place buy orders at different price levels
       const buyPrice = 90 - (i * 5) - (j * 2); // Descending prices
       await placeOrderForTrader(
-        client,
+        connection,
         trader,
         market,
-        Side.Bid,
+        marketAccount,
+        { bid: {} } as Side,
         buyPrice,
         10,
-        PlaceOrderType.Limit
+        { limit: {} }
       );
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       // Place sell orders at different price levels
       const sellPrice = 110 + (i * 5) + (j * 2); // Ascending prices
       await placeOrderForTrader(
-        client,
+        connection,
         trader,
         market,
-        Side.Ask,
+        marketAccount,
+        { ask: {} } as Side,
         sellPrice,
         10,
-        PlaceOrderType.Limit
+        { limit: {} }
       );
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
     }
   }
 
@@ -272,35 +289,37 @@ async function main() {
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   // Place some market orders to execute trades
-  for (let i = 0; i < Math.min(3, traders.length); i++) {
+  for (let i = 0; i < Math.min(2, traders.length); i++) {
     const trader = traders[i];
     console.log(`\n👤 Trader ${i + 1} (${trader.publicKey.toBase58().slice(0, 8)}...):`);
 
     // Market buy
     await placeOrderForTrader(
-      client,
+      connection,
       trader,
       market,
-      Side.Bid,
+      marketAccount,
+      { bid: {} } as Side,
       200, // High price to ensure execution
       5,
-      PlaceOrderType.Market
+      { market: {} }
     );
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Market sell
     await placeOrderForTrader(
-      client,
+      connection,
       trader,
       market,
-      Side.Ask,
+      marketAccount,
+      { ask: {} } as Side,
       1, // Low price to ensure execution
       5,
-      PlaceOrderType.Market
+      { market: {} }
     );
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1500));
   }
 
   console.log("\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -310,7 +329,7 @@ async function main() {
   console.log("📝 Summary:");
   console.log(`   Traders used: ${traders.length}`);
   console.log(`   Limit orders placed: ~${traders.length * ORDERS_PER_TRADER * 2}`);
-  console.log(`   Market orders placed: ~${Math.min(3, traders.length) * 2}`);
+  console.log(`   Market orders placed: ~${Math.min(2, traders.length) * 2}`);
   console.log("");
   console.log("🔗 View order book:");
   console.log("   pnpm order-book");
