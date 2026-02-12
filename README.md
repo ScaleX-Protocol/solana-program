@@ -41,9 +41,9 @@ cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
 avm install 0.28.0
 avm use 0.28.0
 
-# Install PostgreSQL (for indexer)
-brew install postgresql@14
-brew services start postgresql@14
+# Install Docker (for indexer PostgreSQL)
+brew install --cask docker
+# Open Docker.app to start Docker daemon
 ```
 </details>
 
@@ -72,9 +72,12 @@ cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
 avm install 0.28.0
 avm use 0.28.0
 
-# Install PostgreSQL (for indexer)
-sudo apt-get install -y postgresql postgresql-contrib
-sudo systemctl start postgresql
+# Install Docker (for indexer PostgreSQL)
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER  # Log out and back in after this
 ```
 </details>
 
@@ -85,7 +88,7 @@ pnpm --version        # Should be ≥8
 rustc --version       # Should show 1.79.0 (auto-set by rust-toolchain.toml)
 solana --version      # Should be 1.18.23
 anchor --version      # Should be 0.28.0
-psql --version        # Should be ≥14
+docker --version      # For indexer database
 ```
 
 ### 2. Download Pre-built Programs
@@ -172,33 +175,52 @@ pnpm post-order
 <details>
 <summary><b>Click to expand indexer setup</b></summary>
 
-#### Create Database
+#### Start PostgreSQL Database
 
 ```bash
-# Create database
-createdb openbook_indexer
+# Start PostgreSQL 17 in Docker
+docker run -d \
+  --name postgres-database \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=openbook_indexer \
+  -p 5436:5432 \
+  postgres:17
 
-# Apply schema
-psql openbook_indexer < crates/indexer/schema.sql
+# Verify container is running
+docker ps | grep postgres-database
+```
 
-# Verify database
-psql openbook_indexer -c "\dt"
+#### Apply Database Schema
+
+```bash
+# Apply schema to the database
+PGPASSWORD=postgres psql -h localhost -p 5436 -U postgres -d openbook_indexer < crates/indexer/schema.sql
+
+# Verify tables were created
+PGPASSWORD=postgres psql -h localhost -p 5436 -U postgres -d openbook_indexer -c "\dt"
 ```
 
 #### Configure Environment
 
 ```bash
-# Copy example env file
-cp crates/indexer/.env.example crates/indexer/.env
-
-# Edit with your settings
+# Create .env file for indexer
 cat > crates/indexer/.env << EOF
 RPC_URL=http://127.0.0.1:8899
-DATABASE_URL=postgresql://$(whoami)@localhost/openbook_indexer
+DATABASE_URL=postgresql://postgres:postgres@localhost:5436/openbook_indexer
 PORT=3000
 LOG_LEVEL=info
 EOF
 ```
+
+**Database Connection Details:**
+- Host: `localhost`
+- Port: `5436` (mapped from container's 5432)
+- Database: `openbook_indexer`
+- User: `postgres`
+- Password: `postgres`
+- Container: `postgres-database`
+- Image: `postgres:17`
 
 #### Start Indexer Services
 
@@ -219,8 +241,30 @@ curl http://localhost:3000/health
 # View indexed markets
 curl http://localhost:3000/markets
 
-# Check database
-psql openbook_indexer -c "SELECT COUNT(*) FROM markets;"
+# Check database contents
+PGPASSWORD=postgres psql -h localhost -p 5436 -U postgres -d openbook_indexer -c "
+SELECT
+  (SELECT COUNT(*) FROM markets) as markets,
+  (SELECT COUNT(*) FROM orders) as orders,
+  (SELECT COUNT(*) FROM trades) as trades,
+  (SELECT COUNT(*) FROM events) as events;
+"
+
+# Or access database directly
+docker exec -it postgres-database psql -U postgres -d openbook_indexer
+```
+
+#### Stop/Restart Database
+
+```bash
+# Stop database
+docker stop postgres-database
+
+# Start existing database
+docker start postgres-database
+
+# Remove database (WARNING: deletes all data)
+docker rm -f postgres-database
 ```
 
 </details>
@@ -270,7 +314,7 @@ pnpm clean     # Clean build artifacts
 | Rust | 1.79.0 | Building (auto-managed) |
 | Solana CLI | 1.18.23 | Validator & deployment |
 | Anchor CLI | 0.28.0 | Smart contracts |
-| PostgreSQL | ≥14 | Indexer (optional) |
+| Docker | Latest | Indexer database (optional) |
 
 See [Complete Setup](#complete-setup) for installation instructions.
 
@@ -381,20 +425,27 @@ solana airdrop 100
 
 **Database connection fails:**
 ```bash
-# Check PostgreSQL is running
-pg_isready
+# Check Docker container is running
+docker ps | grep postgres-database
 
-# macOS
-brew services restart postgresql@14
+# Restart container
+docker restart postgres-database
 
-# Linux
-sudo systemctl restart postgresql
+# Check logs
+docker logs postgres-database
 ```
 
 **Schema not applied:**
 ```bash
 # Reapply schema
-psql openbook_indexer < crates/indexer/schema.sql
+PGPASSWORD=postgres psql -h localhost -p 5436 -U postgres -d openbook_indexer < crates/indexer/schema.sql
+```
+
+**Wrong database port:**
+```bash
+# Make sure you're using port 5436, not 5432!
+# Correct: postgresql://postgres:postgres@localhost:5436/openbook_indexer
+# Wrong:   postgresql://postgres:postgres@localhost:5432/openbook_indexer
 ```
 
 **Can't connect to RPC:**
