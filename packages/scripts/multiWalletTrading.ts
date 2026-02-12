@@ -70,7 +70,7 @@ async function generateOrLoadKeypair(filename: string): Promise<Keypair> {
   } else {
     console.log(`   Generating new keypair: ${filename}`);
     const keypair = Keypair.generate();
-    fs.writeFileSync(keypairPath, JSON.stringify(Array.from(keypair.secretKey)));
+    fs.writeFileSync(keypairPath, `[${Array.from(keypair.secretKey).join(',')}]`);
     return keypair;
   }
 }
