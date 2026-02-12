@@ -10,7 +10,7 @@ import { OpenBookV2Client, findAllMarkets } from "@openbook-dex/openbook-v2";
 import { MintUtils } from "./mint_utils";
 import * as fs from "fs";
 
-const LOCAL_RPC = "http://127.0.0.1:8899";
+const LOCAL_RPC = process.env.SOLANA_RPC_URL || "http://127.0.0.1:8899";
 const PROGRAM_ID = new PublicKey("opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb");
 
 function delay(ms: number) {
