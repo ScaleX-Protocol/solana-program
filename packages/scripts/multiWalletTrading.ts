@@ -17,7 +17,6 @@ const PROGRAM_ID = new PublicKey("opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb");
 const NUM_TRADERS = parseInt(process.env.NUM_TRADERS || "3");
 const ORDERS_PER_TRADER = parseInt(process.env.ORDERS_PER_TRADER || "3");
 const MARKET_ADDRESS = process.env.MARKET_ADDRESS; // Optional: specify market directly to avoid scanning
-const MARKET_ADDRESS = process.env.MARKET_ADDRESS; // Optional: specify market directly to avoid scanning
 
 interface MarketInfo {
   address: PublicKey;
