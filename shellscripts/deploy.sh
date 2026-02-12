@@ -39,8 +39,17 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-SOLANA_RPC_URL="${SOLANA_RPC_URL:-http://127.0.0.1:8899}"
 SOLANA_NETWORK="${SOLANA_NETWORK:-localnet}"
+
+# Set RPC URL based on network
+if [[ "$SOLANA_NETWORK" == "devnet" ]]; then
+    SOLANA_RPC_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
+elif [[ "$SOLANA_NETWORK" == "mainnet" ]]; then
+    SOLANA_RPC_URL="${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}"
+else
+    SOLANA_RPC_URL="${SOLANA_RPC_URL:-http://127.0.0.1:8899}"
+fi
+
 RESET_VALIDATOR="${RESET_VALIDATOR:-true}"
 OPENBOOK_PROGRAM_ID="opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb"
 METAPLEX_PROGRAM_ID="metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
@@ -168,11 +177,14 @@ if [[ "$SOLANA_NETWORK" == "localnet" ]]; then
 
         print_success "Validator is ready"
     fi
-
-    # Configure Solana CLI to use local validator
-    solana config set --url "$SOLANA_RPC_URL" > /dev/null
-    print_success "Solana CLI configured to use $SOLANA_RPC_URL"
+else
+    print_step "Configuring for $SOLANA_NETWORK network..."
+    print_success "Using $SOLANA_RPC_URL"
 fi
+
+# Configure Solana CLI to use the appropriate network
+solana config set --url "$SOLANA_RPC_URL" > /dev/null
+print_success "Solana CLI configured to use $SOLANA_RPC_URL"
 
 # Check wallet balance
 print_step "Checking wallet balance..."
@@ -186,6 +198,13 @@ if (( $(echo "$BALANCE < 1" | bc -l) )); then
     if [[ "$SOLANA_NETWORK" == "localnet" ]]; then
         print_warning "Low balance detected. Airdropping 10 SOL..."
         solana airdrop 10 --url "$SOLANA_RPC_URL"
+        print_success "Airdrop successful"
+    elif [[ "$SOLANA_NETWORK" == "devnet" ]]; then
+        print_warning "Low balance detected. Attempting devnet airdrop..."
+        solana airdrop 2 --url "$SOLANA_RPC_URL" || {
+            print_error "Airdrop failed. Get devnet SOL from https://faucet.solana.com"
+            exit 1
+        }
         print_success "Airdrop successful"
     else
         print_error "Insufficient balance for deployment (need at least 1 SOL)"
