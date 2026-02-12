@@ -426,6 +426,66 @@ solana balance
 solana airdrop 100
 ```
 
+### Order Placement Issues
+
+**ConstraintTokenMint error (code 2014):**
+
+This error occurs when token accounts don't match expected mints. **Fixed in latest version.**
+
+```bash
+# Verify you're using the correct version
+git pull origin main
+
+# The fix: placeOrderIx must receive BOTH token accounts
+# BID: placeOrderIx(..., userQuoteAcc, userBaseAcc, ...)
+# ASK: placeOrderIx(..., userBaseAcc, userQuoteAcc, ...)
+```
+
+See [ORDER_PLACEMENT_FIX.md](ORDER_PLACEMENT_FIX.md) for details.
+
+**Transaction timeout / Block height exceeded:**
+
+This is a validator confirmation speed issue, not a code error.
+
+```bash
+# Solution 1: Use 'processed' commitment (faster)
+const provider = new AnchorProvider(
+  new Connection(RPC, { commitment: "processed" }),
+  wallet,
+  { commitment: "processed" }
+);
+
+# Solution 2: Restart validator for better performance
+pkill -9 -f solana-test-validator
+rm -rf test-ledger/
+# Start validator again
+
+# Solution 3: Check if transaction actually succeeded
+solana confirm <signature>
+```
+
+**Side enum TypeScript errors:**
+
+```typescript
+// Old (doesn't work):
+Side.Bid, Side.Ask
+
+// New (correct):
+{ bid: {} } as Side
+{ ask: {} } as Side
+```
+
+**Market or mint address mismatch:**
+
+```bash
+# Check deployed markets
+cd packages/scripts
+export ANCHOR_WALLET=$HOME/.config/solana/id.json
+npx ts-node debugMarket.ts
+
+# This shows the correct market and mint addresses
+```
+
 ### Indexer Issues
 
 **Database connection fails:**
@@ -483,6 +543,20 @@ pnpm install
 # Clean and rebuild
 cargo clean
 cargo build
+```
+
+**TypeScript compilation errors:**
+```bash
+# Common issues and fixes:
+
+# 1. Duplicate variable declarations
+# Fix: Remove duplicate const declarations
+
+# 2. Side enum errors
+# Fix: Use { bid: {} } as Side instead of Side.Bid
+
+# 3. ANCHOR_WALLET not set
+export ANCHOR_WALLET=$HOME/.config/solana/id.json
 ```
 
 ## Contributing
