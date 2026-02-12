@@ -121,11 +121,11 @@ async function placeOrderForTrader(
   try {
     const openOrdersInfo = await connection.getAccountInfo(openOrdersAccount);
     if (!openOrdersInfo) {
-      await traderClient.createOpenOrders(trader.publicKey, market.address, "trader");
+      await traderClient.createOpenOrders(trader, market.address, "trader");
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   } catch (error) {
-    await traderClient.createOpenOrders(trader.publicKey, market.address, "trader");
+    await traderClient.createOpenOrders(trader, market.address, "trader");
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
