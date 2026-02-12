@@ -1,122 +1,119 @@
-# Documentation Archive
+# Documentation Index
 
-This directory contains additional documentation and guides that provide more detail or document the development history.
+Complete documentation for the OpenBook V2 Monorepo.
 
----
+## Getting Started
 
-## 📚 What's Here
+- 📘 **[Monorepo Setup](MONOREPO_README.md)** - Complete setup instructions for the monorepo
+- 📗 **[Migration Guide](MIGRATION_COMPLETE.md)** - How the monorepo was organized
 
-### Reference Documentation
+## Guides
 
-**LOCAL_DEPLOYMENT_SUCCESS.md**
-- Documents the initial successful deployment
-- Contains addresses and configuration details
-- Useful as a reference for what was deployed
+### Deployment & Usage
 
-**LOW_LEVEL_EXPLANATION.md**
-- Deep technical dive into how programs work
-- Shows byte-level account structures
-- Explains instruction building
+- 📗 **[Deployment Summary](guides/DEPLOYMENT_SUMMARY.md)** - Overview of deployed tokens and markets
+- 📕 **[Deployment Guide](guides/DEPLOYMENT_GUIDE.md)** - Step-by-step deployment instructions
+- 📙 **[Quick Start](guides/QUICK_START.md)** - Get up and running quickly
+- 📘 **[Viewing Orders](guides/VIEWING_ORDERS_GUIDE.md)** - How to view and monitor orders
 
-**EVM_TO_SOLANA_TOKENS.md**
-- Comprehensive guide for EVM developers
-- Maps Solana concepts to Ethereum equivalents
-- Architecture comparisons
+### Development
 
----
+- 📗 **[OpenBook Development](OPENBOOK_DEVELOPMENT.md)** - Working with OpenBook V2
+- 📕 **[Token Metadata](TOKEN_METADATA_GUIDE.md)** - Creating tokens with metadata
+- 📙 **[EVM to Solana](EVM_TO_SOLANA_TOKENS.md)** - Guide for EVM developers
+- 📘 **[Low Level Explanation](LOW_LEVEL_EXPLANATION.md)** - Deep dive into internals
 
-### Development History
+### Reference
 
-**DEPLOYMENT_GUIDE.md**
-- Original deployment guide (before enhancements)
+- 📗 **[Programs Used](PROGRAMS_USED.md)** - OpenBook and Metaplex program details
+- 📕 **[Using Metaplex Locally](USING_METAPLEX_LOCALLY.md)** - Local Metaplex setup
+- 📙 **[Start Validator with Metaplex](START_VALIDATOR_WITH_METAPLEX.md)** - Validator configuration
 
-**QUICK_START.md**
-- Original quick start guide
+## Component Documentation
 
-**SETUP_COMPLETE.md**
-- Setup completion notes
+### Programs
 
-**SETUP_STATUS.md**
-- Initial setup status
+Located in `programs/openbook-v2/`
 
----
+- OpenBook V2 DEX program (Rust/Anchor)
+- Program ID: `opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb`
+- See `programs/openbook-v2/README.md` for details
 
-### Enhancement Documentation
+### Scripts
 
-**ENHANCEMENT_SUMMARY.md**
-- Summary of metadata enhancements made
+Located in `packages/scripts/`
 
-**BEFORE_AFTER_COMPARISON.md**
-- Code comparison before/after adding metadata
+- Deployment scripts (TypeScript)
+- Market interaction utilities
+- Trading demos
+- See `packages/scripts/README.md` for details
 
-**TOKEN_METADATA_GUIDE.md**
-- Technical guide to token metadata
+### Indexer
 
----
+Located in `crates/indexer/`
 
-### Concept Explanations
+- Event listener and REST API (Rust)
+- PostgreSQL storage
+- Real-time event processing
+- API documentation: `crates/indexer/API.md`
+- Logging: `crates/indexer/LOGGING.md`
 
-**START_VALIDATOR_WITH_METAPLEX.md**
-- How to load Metaplex on local validator
+## Quick Links
 
-**USING_METAPLEX_LOCALLY.md**
-- Using Metaplex program concepts
+### Common Tasks
 
-**PROGRAMS_USED.md**
-- Visual guide to programs used
+- [Deploy markets locally](guides/DEPLOYMENT_GUIDE.md#deploy-locally)
+- [View market details](guides/VIEWING_ORDERS_GUIDE.md)
+- [Create custom tokens](TOKEN_METADATA_GUIDE.md)
+- [Set up the indexer](../crates/indexer/README.md)
 
-**QUICK_VISUAL_SUMMARY.md**
-- Visual diagrams and comparisons
+### Troubleshooting
 
-**FILE_GUIDE.md**
-- Guide to organizing documentation files
+- [Validator issues](MONOREPO_README.md#troubleshooting)
+- [pnpm problems](MONOREPO_README.md#pnpm-install-fails)
+- [Rust compilation](MONOREPO_README.md#rust-compilation-issues)
 
----
+## Archive
 
-### Old Scripts
+Historical documentation and outdated guides are in `docs/archive/`.
 
-**deploy-local.sh**
-- Original deployment script (before enhancements)
-- Use `start-validator-full.sh` in root instead
-
----
-
-## 🎯 What to Read
-
-**For setup:** Go to root directory and read:
-- `README.md` (quick reference)
-- `COMPLETE_SETUP_GUIDE.md` (everything you need)
-
-**For deep understanding:**
-- `LOW_LEVEL_EXPLANATION.md` - How programs work at low level
-- `EVM_TO_SOLANA_TOKENS.md` - For Ethereum developers
-
-**For reference:**
-- `LOCAL_DEPLOYMENT_SUCCESS.md` - Your deployment details
-
-**Everything else:** Historical/supplementary documentation
-
----
-
-## ✅ Organization
+## Project Structure
 
 ```
-openbook/
-├── README.md                    ← Start here!
-├── COMPLETE_SETUP_GUIDE.md      ← Main guide
-├── start-validator-full.sh      ← Startup script
+docs/
+├── README.md                        ← You are here
+├── MONOREPO_README.md              ← Main setup guide
+├── MIGRATION_COMPLETE.md           ← Monorepo migration details
 │
-├── docs/                        ← You are here
-│   ├── README.md                ← This file
-│   ├── LOCAL_DEPLOYMENT_SUCCESS.md
-│   ├── LOW_LEVEL_EXPLANATION.md
-│   ├── EVM_TO_SOLANA_TOKENS.md
-│   └── ... (other reference docs)
+├── guides/                         ← User guides
+│   ├── DEPLOYMENT_SUMMARY.md
+│   ├── DEPLOYMENT_GUIDE.md
+│   ├── QUICK_START.md
+│   └── VIEWING_ORDERS_GUIDE.md
 │
-├── openbook-v2/                 ← OpenBook source
-└── scripts-v2/                  ← Your scripts
+├── archive/                        ← Historical docs
+│   ├── COMPLETE_SETUP_GUIDE.md
+│   ├── SETUP_PROGRESS.md
+│   └── ...
+│
+└── [reference docs]                ← Technical references
+    ├── OPENBOOK_DEVELOPMENT.md
+    ├── TOKEN_METADATA_GUIDE.md
+    ├── PROGRAMS_USED.md
+    └── ...
 ```
 
----
+## Contributing to Documentation
 
-*Most users don't need to read files in this directory. The main README and COMPLETE_SETUP_GUIDE have everything you need!*
+When adding new documentation:
+
+1. Place guides in `docs/guides/`
+2. Place reference docs in `docs/`
+3. Update this index
+4. Link from main `README.md` if relevant
+
+## Need Help?
+
+- Start with the [Monorepo Setup Guide](MONOREPO_README.md)
+- Check the [main README](../README.md) for quick commands
+- Browse [guides](guides/) for specific tasks

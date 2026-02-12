@@ -1,172 +1,166 @@
-# OpenBook V2 Local Development
+# OpenBook V2 Monorepo
 
-Complete local development environment for OpenBook V2 DEX on Solana with token metadata support.
+> Unified repository for OpenBook V2 DEX: smart contracts, deployment scripts, and event indexer
 
----
-
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# 1. Build OpenBook + Download Metaplex
-./start-validator-dev.sh
+# 1. Install dependencies
+pnpm install
 
-# 2. Update program ID in scripts-v2/localDeployFixed.ts
-#    (Script shows your program ID)
+# 2. Start local validator with pre-built programs
+solana-test-validator --reset \
+  --bpf-program opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb /tmp/openbook_v2.so \
+  --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/metaplex_token_metadata.so \
+  --quiet &
 
 # 3. Deploy markets
-cd scripts-v2 && npm run deploy-local-fixed
+pnpm deploy-local
+
+# 4. View markets
+pnpm view-markets
 ```
 
-**What this does:**
-- ✅ Compiles OpenBook from source (you can modify it)
-- ✅ Downloads Metaplex for token metadata
-- ✅ Starts local validator with both programs
-- ✅ Ready for development!
-
-**→ See [COMPLETE_SETUP_GUIDE.md](./COMPLETE_SETUP_GUIDE.md) for detailed instructions**
-
----
-
-## 📚 Documentation
-
-**→ [COMPLETE_SETUP_GUIDE.md](./COMPLETE_SETUP_GUIDE.md)** - Everything you need (start here!)
-
-### Additional Resources
-
-- **For EVM developers**: See [COMPLETE_SETUP_GUIDE.md → For EVM Developers](./COMPLETE_SETUP_GUIDE.md#-for-evm-developers)
-- **Understanding programs**: See [COMPLETE_SETUP_GUIDE.md → Programs Used](./COMPLETE_SETUP_GUIDE.md#-programs-used)
-- **More documentation**: See [`docs/`](./docs/) folder for reference guides and development history
-
----
-
-## 🛠️ What This Includes
-
-### Infrastructure
-- ✅ Local Solana validator
-- ✅ OpenBook V2 DEX program
-- ✅ Metaplex Token Metadata program
-- ✅ 3 tokens with names, symbols, and logos
-- ✅ 2 trading markets (BTC/USDT, WETH/USDT)
-
-### Scripts
-```bash
-npm run deploy-local-fixed          # Deploy everything
-npm run view-markets                # View markets
-npm run create-tokens-with-metadata # Create custom tokens
-npm run post-order                  # Place an order
-```
-
----
-
-## 🎯 Key Concepts
-
-### Programs (Like Smart Contracts)
-
-Your validator runs 4 programs:
-
-1. **System Program** (built-in) - Creates accounts
-2. **SPL Token** (built-in) - Manages tokens
-3. **OpenBook** (loaded) - DEX functionality
-4. **Metaplex** (loaded) - Token metadata
-
-### Token with Metadata
-
-```typescript
-// Creates token with name, symbol, and logo
-const mint = await createMintWithMetadata(
-  {
-    name: "Bitcoin",
-    symbol: "BTC",
-    uri: "https://logo.png"
-  },
-  8 // decimals
-);
-```
-
-**Result:**
-- Mint account (stores decimals, supply)
-- Metadata account (stores name, symbol, logo)
-- Visible in wallets with proper name and icon
-
----
-
-## 🔧 Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| Connection refused | `./start-validator-full.sh` |
-| Program not found | Download programs (see guide) |
-| No SOL | `solana airdrop 100` |
-| TypeScript errors | `cd scripts-v2 && npm install` |
-
-See [COMPLETE_SETUP_GUIDE.md → Troubleshooting](./COMPLETE_SETUP_GUIDE.md#-troubleshooting) for more.
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 openbook/
-├── README.md                      ← You are here
-├── COMPLETE_SETUP_GUIDE.md        ← Main guide (read this!)
-├── start-validator-dev.sh         ← Development startup script
-│
-├── openbook-v2/                   ← OpenBook program source
-│   ├── programs/                  ← Rust code (modify here!)
-│   └── ts/                        ← TypeScript client
-│
-└── scripts-v2/                    ← Your deployment scripts
-    ├── localDeployFixed.ts        ← Main deployment (with metadata)
-    ├── viewMarkets.ts             ← Market viewer
-    ├── mint_utils.ts              ← Token utilities
-    └── package.json               ← NPM scripts
+├── programs/openbook-v2/   # OpenBook V2 DEX program (Rust/Anchor)
+├── packages/scripts/       # Deployment & interaction scripts (TypeScript)
+├── crates/indexer/        # Event indexer with REST API (Rust)
+└── docs/                  # Documentation
 ```
 
+## Common Commands
+
+### Trading & Markets
+
+```bash
+pnpm deploy-local    # Deploy tokens and create markets
+pnpm view-markets    # View all deployed markets
+pnpm post-order      # Post a test order
+```
+
+### Indexer
+
+```bash
+pnpm indexer:api        # Start REST API server (port 3000)
+pnpm indexer:listener   # Start event listener
+```
+
+### Development
+
+```bash
+pnpm build     # Build all packages
+pnpm format    # Format all code (TypeScript + Rust)
+pnpm lint      # Lint all code
+pnpm clean     # Clean build artifacts
+```
+
+## Prerequisites
+
+- **Rust**: 1.79.0 (auto-managed via `rust-toolchain.toml`)
+- **Solana CLI**: 1.18.23
+- **Anchor CLI**: 0.28.0
+- **Node.js**: ≥18
+- **pnpm**: ≥8
+- **PostgreSQL**: ≥14 (for indexer)
+
+## Documentation
+
+- 📘 [Setup Guide](docs/MONOREPO_README.md) - Complete setup instructions
+- 📗 [Deployment Guide](docs/guides/DEPLOYMENT_SUMMARY.md) - Token & market deployment
+- 📙 [All Guides](docs/README.md) - Full documentation index
+
+## Components
+
+### Programs (`programs/openbook-v2/`)
+
+OpenBook V2 orderbook DEX program built with Anchor.
+
+- **Program ID**: `opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb`
+- **Build**: Use pre-built binaries from devnet (recommended)
+- **Test**: `cd programs/openbook-v2 && anchor test`
+
+### Scripts (`packages/scripts/`)
+
+TypeScript deployment and interaction scripts.
+
+- Create tokens with metadata
+- Deploy markets (BTC/USDT, WETH/USDT, etc.)
+- Place orders, view orderbooks
+- Trading demos
+
+### Indexer (`crates/indexer/`)
+
+High-performance Rust indexer for OpenBook events.
+
+- REST API for querying market data
+- Real-time event processing
+- PostgreSQL storage
+
+## Environment Setup
+
+### Scripts
+
+Create `packages/scripts/.env`:
+```env
+ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
+ANCHOR_WALLET=/path/to/your/keypair.json
+```
+
+### Indexer
+
+Create `crates/indexer/.env`:
+```env
+RPC_URL=http://127.0.0.1:8899
+DATABASE_URL=postgresql://user:password@localhost/openbook_indexer
+PORT=3000
+```
+
+## Why Pre-built Programs?
+
+Due to Rust toolchain constraints (need 1.79.0 for BPF, but Solana 1.18.23 deps need 1.85+), we use pre-built programs from devnet:
+
+```bash
+# Download once
+solana program dump opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb /tmp/openbook_v2.so --url https://api.devnet.solana.com
+solana program dump metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/metaplex_token_metadata.so --url https://api.devnet.solana.com
+```
+
+## Troubleshooting
+
+### Validator won't start
+```bash
+pkill -9 -f solana-test-validator
+rm -rf test-ledger/
+# Restart with fresh state
+```
+
+### Wrong Rust version
+```bash
+rustc --version  # Should show 1.79.0
+rustup override set 1.79.0
+```
+
+### pnpm issues
+```bash
+pnpm store prune
+rm -rf node_modules packages/*/node_modules
+pnpm install
+```
+
+## Contributing
+
+1. Fork and create a feature branch
+2. Make your changes
+3. Test: `pnpm test && pnpm lint`
+4. Submit a pull request
+
+## License
+
+MIT
+
 ---
 
-## 💰 Cost Comparison
-
-| Operation | Ethereum | Solana |
-|-----------|----------|--------|
-| Deploy ERC20 | ~$150 | N/A (shared program) |
-| Create token + metadata | Included | ~$2 |
-| **Savings** | - | **98% cheaper!** |
-
----
-
-## 🎓 Learning Resources
-
-- **Solana Docs**: https://docs.solana.com
-- **OpenBook V2**: https://github.com/openbook-dex/openbook-v2
-- **Metaplex**: https://docs.metaplex.com
-
----
-
-## ✅ What You Can Do Now
-
-1. ✅ Create tokens with professional metadata
-2. ✅ Deploy trading markets locally
-3. ✅ Place and match orders
-4. ✅ Build trading bots
-5. ✅ Develop UIs for your DEX
-6. ✅ Test strategies risk-free
-
----
-
-## 🚀 Next Steps
-
-**Build something!**
-
-- Place your first order: `npm run post-order`
-- Create a market maker bot
-- Build a trading UI
-- Test arbitrage strategies
-- Deploy to devnet when ready
-
----
-
-**Happy building on Solana! 🎉**
-
----
-
-*For complete documentation, see [COMPLETE_SETUP_GUIDE.md](./COMPLETE_SETUP_GUIDE.md)*
+**Need help?** Check the [documentation index](docs/README.md) or [setup guide](docs/MONOREPO_README.md).
