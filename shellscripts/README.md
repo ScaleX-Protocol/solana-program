@@ -64,6 +64,46 @@ ORDER_SIDE="sell" bash shellscripts/populate-data.sh
 
 ---
 
+### `fill-orderbook.sh` ⭐
+Uses multiple wallets to fill order book with realistic trading activity and execute market orders.
+
+**Features:**
+- Creates/uses multiple trader wallets
+- Fills order book with limit orders at different price levels
+- Executes market orders for price discovery
+- Simulates realistic trading environment
+- Perfect for testing and demos
+
+**Usage:**
+```bash
+# Basic usage (3 traders, 3 orders each)
+bash shellscripts/fill-orderbook.sh
+
+# Use 5 traders with 5 orders each
+NUM_TRADERS=5 ORDERS_PER_TRADER=5 bash shellscripts/fill-orderbook.sh
+
+# Heavy load test (10 traders, 10 orders each = 200 orders)
+NUM_TRADERS=10 ORDERS_PER_TRADER=10 bash shellscripts/fill-orderbook.sh
+
+# On devnet
+SOLANA_RPC_URL="https://api.devnet.solana.com" bash shellscripts/fill-orderbook.sh
+```
+
+**Environment Variables:**
+- `SOLANA_RPC_URL` - RPC endpoint (default: http://127.0.0.1:8899)
+- `NUM_TRADERS` - Number of trader wallets (default: 3)
+- `ORDERS_PER_TRADER` - Orders per trader (default: 3)
+
+**What It Does:**
+1. Generates/loads trader keypairs (saved in `~/.config/solana/trader-*.json`)
+2. Funds each trader with SOL
+3. Creates token accounts and mints tokens for each trader
+4. Places limit orders at different price levels (builds order book depth)
+5. Executes market orders to generate trades
+6. Shows final order book state
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Deploy Markets
