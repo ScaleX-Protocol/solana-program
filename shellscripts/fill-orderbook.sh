@@ -130,7 +130,7 @@ export SOLANA_RPC_URL
 export NUM_TRADERS
 export ORDERS_PER_TRADER
 
-ts-node multiWalletTrading.ts
+pnpm multi-wallet-trade
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
