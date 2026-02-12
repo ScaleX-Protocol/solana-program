@@ -38,7 +38,7 @@ async function getMarketByAddress(
     address: marketAddress,
     baseMint: market.baseMint,
     quoteMint: market.quoteMint,
-    name: market.name || "Unknown Market",
+    name: (typeof market.name === 'string' ? market.name : String.fromCharCode(...market.name)) || "Unknown Market",
   };
 }
 
