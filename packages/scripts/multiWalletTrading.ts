@@ -16,6 +16,8 @@ const RPC = process.env.SOLANA_RPC_URL || "http://localhost:8899";
 const PROGRAM_ID = new PublicKey("opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb");
 const NUM_TRADERS = parseInt(process.env.NUM_TRADERS || "3");
 const ORDERS_PER_TRADER = parseInt(process.env.ORDERS_PER_TRADER || "3");
+const MARKET_ADDRESS = process.env.MARKET_ADDRESS; // Optional: specify market directly to avoid scanning
+const MARKET_ADDRESS = process.env.MARKET_ADDRESS; // Optional: specify market directly to avoid scanning
 
 interface MarketInfo {
   address: PublicKey;
@@ -24,7 +26,33 @@ interface MarketInfo {
   name: string;
 }
 
-async function getMarkets(connection: Connection, provider: AnchorProvider): Promise<MarketInfo[]> {
+async function getMarketByAddress(
+  client: OpenBookV2Client,
+  marketAddress: PublicKey
+): Promise<MarketInfo> {
+  const market = await client.deserializeMarketAccount(marketAddress);
+  if (!market) {
+    throw new Error(`Market not found at ${marketAddress.toBase58()}`);
+  }
+
+  return {
+    address: marketAddress,
+    baseMint: market.baseMint,
+    quoteMint: market.quoteMint,
+    name: market.name || "Unknown Market",
+  };
+}
+
+async function getMarkets(connection: Connection, provider: AnchorProvider, client: OpenBookV2Client): Promise<MarketInfo[]> {
+  // If specific market address is provided, use it (avoids scanning & rate limits)
+  if (MARKET_ADDRESS) {
+    console.log(`✅ Using specified market: ${MARKET_ADDRESS}\n`);
+    const market = await getMarketByAddress(client, new PublicKey(MARKET_ADDRESS));
+    return [market];
+  }
+
+  // Otherwise, scan for all markets (may hit rate limits on public RPCs)
+  console.log("⚠️  Scanning for all markets (may hit rate limits on public RPCs)...\n");
   const markets = await findAllMarkets(connection, PROGRAM_ID, provider);
   return markets.map((m: any) => ({
     address: new PublicKey(m.market),
@@ -199,8 +227,8 @@ async function main() {
   console.log("");
 
   // Get markets
-  console.log("📊 Fetching markets...");
-  const markets = await getMarkets(connection, provider);
+  console.log("📊 Fetching market...");
+  const markets = await getMarkets(connection, provider, client);
   if (markets.length === 0) {
     throw new Error("No markets found. Please deploy first.");
   }

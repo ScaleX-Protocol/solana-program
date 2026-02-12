@@ -47,6 +47,7 @@ NC='\033[0m' # No Color
 SOLANA_RPC_URL="${SOLANA_RPC_URL:-http://127.0.0.1:8899}"
 NUM_TRADERS="${NUM_TRADERS:-3}"
 ORDERS_PER_TRADER="${ORDERS_PER_TRADER:-3}"
+MARKET_ADDRESS="${MARKET_ADDRESS:-}"  # Optional: specify market address to avoid scanning (faster, no rate limits)
 
 # Function to print colored output
 print_step() {
@@ -118,6 +119,7 @@ print_success "Configuration:"
 echo "   - RPC URL: $SOLANA_RPC_URL"
 echo "   - Number of traders: $NUM_TRADERS"
 echo "   - Orders per trader: $ORDERS_PER_TRADER"
+echo "   - Market address: ${MARKET_ADDRESS:-auto-detect (may be slow)}"
 echo "   - Total limit orders: ~$((NUM_TRADERS * ORDERS_PER_TRADER * 2))"
 echo "   - Market orders: ~$((NUM_TRADERS < 3 ? NUM_TRADERS * 2 : 6))"
 echo ""
@@ -129,6 +131,7 @@ echo ""
 export SOLANA_RPC_URL
 export NUM_TRADERS
 export ORDERS_PER_TRADER
+export MARKET_ADDRESS
 export ANCHOR_WALLET="${HOME}/.config/solana/id.json"
 
 pnpm multi-wallet-trade
