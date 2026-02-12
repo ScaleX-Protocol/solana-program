@@ -61,3 +61,7 @@ temp/
 
 # Old directory structure (can remove after migration)
 indexer/
+
+# Documentation (not tracked in git)
+docs/
+DOCS_REORGANIZED.md
