@@ -15,7 +15,12 @@
     "indexer:api": "cargo run --bin api-server",
     "indexer:listener": "cargo run --bin event-listener"
   },
-  "keywords": ["solana", "openbook", "dex", "monorepo"],
+  "keywords": [
+    "solana",
+    "openbook",
+    "dex",
+    "monorepo"
+  ],
   "author": "",
   "license": "MIT",
   "engines": {

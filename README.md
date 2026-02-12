@@ -134,10 +134,12 @@ pnpm install
 ### 5. Start Local Validator & Deploy
 
 ```bash
-# Start validator with pre-built programs
+# Start validator with pre-built programs and transaction history enabled
+# --account-index program-id: Enables transaction history indexing for the backfiller
 solana-test-validator --reset \
   --bpf-program opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb /tmp/openbook_v2.so \
   --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/metaplex_token_metadata.so \
+  --account-index program-id \
   --quiet &
 
 # Wait for validator to start (5-10 seconds)
@@ -172,6 +174,10 @@ pnpm post-order
 
 <details>
 <summary><b>Click to expand indexer setup</b></summary>
+
+> **⚠️ Important:** The indexer's historical backfiller requires the validator to be started with `--account-index program-id` flag. This enables transaction history queries. Without this flag, only real-time events (after the indexer starts) will be captured.
+>
+> On **devnet/mainnet**, transaction history is always available. This requirement is specific to local `solana-test-validator`.
 
 #### Create PostgreSQL Database
 
@@ -384,10 +390,11 @@ pkill -9 -f solana-test-validator
 # Remove old ledger
 rm -rf test-ledger/
 
-# Restart with fresh state
+# Restart with fresh state and transaction history enabled
 solana-test-validator --reset \
-  --bpf-program opnb2LAfJYbRMAHHvqjCwqxanZn7ReEHp1k81EohpZb /tmp/openbook_v2.so \
+  --bpf-program opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb /tmp/openbook_v2.so \
   --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/metaplex_token_metadata.so \
+  --account-index program-id \
   --quiet &
 ```
 
