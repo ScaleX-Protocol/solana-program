@@ -1,0 +1,46 @@
+{
+  "name": "solana-program",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "main": "ts-node main.ts",
+    "deploy-local": "ts-node localDeploy.ts",
+    "simple-market": "ts-node simpleMarketCreate.ts",
+    "deploy-devnet": "ts-node devnetDeploy.ts",
+    "deploy-local-fixed": "ts-node localDeployFixed.ts",
+    "view-markets": "ts-node viewMarkets.ts",
+    "get-markets": "ts-node getMarkets.ts",
+    "create-market": "ts-node createMarket.ts",
+    "post-order": "ts-node postOrder.ts",
+    "create-tokens-with-metadata": "ts-node createTokenWithMetadata.ts",
+    "create-token-low-level": "ts-node createTokenLowLevel.ts",
+    "indexer": "ts-node indexer.ts",
+    "indexer-api": "ts-node indexerAPI.ts",
+    "test-indexer": "ts-node testIndexerAPI.ts",
+    "test:complete": "ts-node completeIndexerTest.ts",
+    "start-services": "./startIndexerServices.sh",
+    "deposit-withdraw": "ts-node depositWithdraw.ts",
+    "trading-demo": "ts-node tradingDemo.ts",
+    "simple-trade": "ts-node simpleTrade.ts",
+    "order-book": "ts-node viewOrderBookSimple.ts",
+    "create-market-robust": "ts-node createMarketRobust.ts",
+    "place-orders": "ts-node placeOrders.ts",
+    "multi-wallet-trade": "ts-node multiWalletTrading.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.28.1-beta.1",
+    "@metaplex-foundation/mpl-token-metadata": "^2.13.0",
+    "@openbook-dex/openbook-v2": "^0.1.10",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.78.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6"
+  }
+}
