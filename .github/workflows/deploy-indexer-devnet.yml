@@ -7,6 +7,8 @@ on:
       - 'crates/indexer/**'
       - 'docker-compose.simple.yml'
       - 'Dockerfile.simple'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
       - '.github/workflows/deploy-indexer-devnet.yml'
   workflow_dispatch:
     inputs:
