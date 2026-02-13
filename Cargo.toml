@@ -1,8 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-  "programs/openbook-v2/lib/client",
-  "programs/openbook-v2/programs/*",
   "crates/indexer",
 ]
 
