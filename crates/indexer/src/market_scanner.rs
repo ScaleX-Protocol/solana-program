@@ -7,8 +7,8 @@ use solana_client::rpc_filter::{RpcFilterType, Memcmp, MemcmpEncodedBytes};
 use tracing::{info, warn};
 
 /// OpenBook V2 Market account discriminator
-/// First 8 bytes of sha256("account:Market")
-const MARKET_DISCRIMINATOR: [u8; 8] = [247, 158, 187, 245, 186, 185, 204, 167];
+/// First 8 bytes from actual market account on devnet
+const MARKET_DISCRIMINATOR: [u8; 8] = [219, 190, 213, 55, 0, 227, 198, 154];
 
 /// Market account structure (simplified - just what we need for indexing)
 #[derive(Debug)]
@@ -34,8 +34,8 @@ pub async fn scan_markets(
             0, // offset: discriminator is at the start
             MemcmpEncodedBytes::Bytes(MARKET_DISCRIMINATOR.to_vec()),
         )),
-        // Additional filter: minimum data size for Market accounts (~3000 bytes)
-        RpcFilterType::DataSize(3000),
+        // Additional filter: minimum data size for Market accounts (observed: 1132 bytes)
+        RpcFilterType::DataSize(1000),
     ];
 
     let config = RpcProgramAccountsConfig {
