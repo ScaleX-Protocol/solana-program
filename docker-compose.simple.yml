@@ -1,0 +1,44 @@
+# Simple OpenBook Indexer Deployment
+# Deploys the actual indexer service from crates/indexer
+
+services:
+  solana-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    container_name: solana-${NETWORK:-devnet}-indexer
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres-database:5432/${OPENBOOK_DATABASE:-openbook_devnet}
+      - REDIS_URL=redis://redis:6379
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - SOLANA_WS_URL=${SOLANA_WS_URL:-wss://api.devnet.solana.com}
+      - OPENBOOK_PROGRAM_ID=${OPENBOOK_PROGRAM_ID:-opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb}
+      - NETWORK=${NETWORK:-devnet}
+      - PORT=42090
+    networks:
+      - infrastructure
+    restart: unless-stopped
+    ports:
+      - "${INDEXER_PORT:-42090}:42090"
+    labels:
+      # Traefik configuration
+      - traefik.enable=true
+      - traefik.http.services.solana-${NETWORK:-devnet}-indexer.loadbalancer.server.port=42090
+      # HTTPS route
+      - traefik.http.routers.solana-${NETWORK:-devnet}-indexer.rule=Host(`solana-${NETWORK:-devnet}-indexer.scalex.money`)
+      - traefik.http.routers.solana-${NETWORK:-devnet}-indexer.entrypoints=websecure
+      - traefik.http.routers.solana-${NETWORK:-devnet}-indexer.tls.certresolver=letsencrypt
+      - traefik.http.routers.solana-${NETWORK:-devnet}-indexer.service=solana-${NETWORK:-devnet}-indexer
+      # HTTP redirect
+      - traefik.http.routers.solana-${NETWORK:-devnet}-indexer-http.rule=Host(`solana-${NETWORK:-devnet}-indexer.scalex.money`)
+      - traefik.http.routers.solana-${NETWORK:-devnet}-indexer-http.entrypoints=web
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:42090/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  infrastructure:
+    external: true
