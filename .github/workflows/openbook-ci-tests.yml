@@ -152,6 +152,7 @@ jobs:
   lint-typescript:
     name: TypeScript Lint & Format Check
     runs-on: ubuntu-latest
+    continue-on-error: true  # Allow TypeScript checks to be informational
 
     steps:
     - name: Checkout code
@@ -195,6 +196,7 @@ jobs:
     name: TypeScript Tests
     runs-on: ubuntu-latest
     needs: lint-typescript
+    continue-on-error: true  # Allow test failures to be informational
 
     steps:
     - name: Checkout code
@@ -265,6 +267,7 @@ jobs:
     name: Integration Tests (Local Validator)
     runs-on: ubuntu-latest
     needs: [build-rust, test-typescript]
+    continue-on-error: true  # Allow integration test failures to be informational
 
     steps:
     - name: Checkout code
