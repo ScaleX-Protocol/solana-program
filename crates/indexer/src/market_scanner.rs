@@ -29,11 +29,11 @@ pub async fn scan_markets(
     info!("🔍 Scanning for OpenBook V2 market accounts...");
 
     // Create filter for Market accounts (discriminator match)
-    // Discriminator in base58: dkokXHR3DTw
+    // Using raw bytes since Base58 encoding might have issues
     let filters = vec![
-        RpcFilterType::Memcmp(Memcmp::new(
+        RpcFilterType::Memcmp(Memcmp::new_match_bytes(
             0, // offset: discriminator is at the start
-            MemcmpEncodedBytes::Base58("dkokXHR3DTw".to_string()),
+            MARKET_DISCRIMINATOR.to_vec(),
         )),
         // Additional filter: minimum data size for Market accounts (observed: 1132 bytes)
         RpcFilterType::DataSize(1132),
