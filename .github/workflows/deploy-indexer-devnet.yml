@@ -29,7 +29,7 @@ env:
 jobs:
   deploy-indexer:
     name: Deploy Indexer to Production
-    runs-on: [self-hosted, solana]
+    runs-on: self-hosted
 
     steps:
     - name: Checkout code
