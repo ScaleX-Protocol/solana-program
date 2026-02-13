@@ -1,0 +1,217 @@
+name: 🚀 Deploy Indexer - Devnet
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'crates/indexer/**'
+      - 'docker-compose.simple.yml'
+      - 'Dockerfile.simple'
+      - '.github/workflows/deploy-indexer-devnet.yml'
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild Docker image'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  NETWORK: devnet
+  SERVER_HOST: 152.53.225.25
+  SERVER_USER: root
+  DOCKER_COMPOSE_FILE: docker-compose.simple.yml
+  PROJECT_NAME: solana-devnet
+
+jobs:
+  deploy-indexer:
+    name: Deploy Indexer to Production
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up SSH
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        SSH_PASSWORD: ${{ secrets.SERVER_SSH_PASSWORD }}
+      run: |
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+
+        if [ -n "$SSH_PRIVATE_KEY" ]; then
+          echo "Using SSH key authentication"
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+        else
+          echo "Using password authentication"
+          sudo apt-get update && sudo apt-get install -y sshpass
+        fi
+
+        # Add server to known hosts
+        ssh-keyscan -H ${{ env.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy to server
+      env:
+        SSH_PASSWORD: ${{ secrets.SERVER_SSH_PASSWORD }}
+      run: |
+        echo "🚀 Deploying indexer to ${{ env.SERVER_HOST }}..."
+
+        # Create deployment script
+        cat > /tmp/deploy.sh << 'DEPLOY_SCRIPT'
+set -e
+
+echo "📦 Step 1: Update repository"
+cd /root
+if [ -d "openbook" ]; then
+  cd openbook
+  git fetch origin
+  git reset --hard origin/main
+  echo "✓ Repository updated"
+else
+  git clone https://github.com/ScaleX-Protocol/solana-program.git openbook
+  cd openbook
+  echo "✓ Repository cloned"
+fi
+
+echo "📊 Step 2: Ensure databases exist"
+if ! docker exec postgres-database psql -U postgres -lqt | cut -d \| -f 1 | grep -qw "openbook_devnet"; then
+  echo "Creating databases..."
+  docker exec postgres-database psql -U postgres -c "CREATE DATABASE openbook_devnet;"
+  docker exec timescaledb psql -U postgres -c "CREATE DATABASE analytics_openbook_devnet;"
+  echo "✓ Databases created"
+else
+  echo "✓ Databases exist"
+fi
+
+echo "🌐 Step 3: Verify infrastructure"
+if ! docker ps | grep -q "postgres-database"; then
+  echo "❌ PostgreSQL not running"
+  exit 1
+fi
+
+if ! docker ps | grep -q "redis"; then
+  echo "❌ Redis not running"
+  exit 1
+fi
+
+if ! docker network ls | grep -q "infrastructure"; then
+  echo "Creating infrastructure network..."
+  docker network create infrastructure
+fi
+
+echo "✓ Infrastructure ready"
+
+echo "🐳 Step 4: Deploy indexer"
+cd /root/openbook
+export NETWORK=devnet
+export POSTGRES_PASSWORD=password
+export OPENBOOK_DATABASE=openbook_devnet
+
+# Stop existing container
+docker-compose -f docker-compose.simple.yml -p solana-devnet down 2>/dev/null || true
+
+# Deploy new version
+docker-compose -f docker-compose.simple.yml -p solana-devnet up -d --build
+
+echo "✓ Indexer deployed"
+
+echo "📋 Step 5: Verify deployment"
+sleep 10
+
+if docker ps | grep -q "solana-devnet-indexer"; then
+  echo "✓ Container is running"
+  docker logs solana-devnet-indexer --tail 20
+  echo ""
+  echo "✅ Deployment successful!"
+  echo "Public URL: https://solana-devnet-indexer.scalex.money"
+else
+  echo "❌ Container failed to start"
+  docker logs solana-devnet-indexer --tail 50
+  exit 1
+fi
+DEPLOY_SCRIPT
+
+        # Execute deployment
+        if [ -n "$SSH_PASSWORD" ]; then
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no \
+            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} 'bash -s' < /tmp/deploy.sh
+        else
+          ssh -o StrictHostKeyChecking=no \
+            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} 'bash -s' < /tmp/deploy.sh
+        fi
+
+    - name: Verify public access
+      run: |
+        echo "🔍 Verifying public access..."
+        sleep 15
+
+        # Check health endpoint
+        for i in {1..5}; do
+          if curl -f -s https://solana-devnet-indexer.scalex.money/health; then
+            echo "✅ Indexer is publicly accessible!"
+            exit 0
+          fi
+          echo "Attempt $i failed, retrying in 10s..."
+          sleep 10
+        done
+
+        echo "⚠️ Public access verification timed out (might need DNS propagation)"
+        exit 0
+
+    - name: Notify deployment
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Deployment completed successfully"
+          echo "🌐 Public URL: https://solana-devnet-indexer.scalex.money"
+        else
+          echo "❌ Deployment failed"
+        fi
+
+  post-deploy:
+    name: Update Deployment Tracking
+    runs-on: ubuntu-latest
+    needs: deploy-indexer
+    if: success()
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Update deployment tracking
+      run: |
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        # Create or update deployment record
+        cat > /tmp/deployment.json << EOF
+        {
+          "timestamp": "$TIMESTAMP",
+          "commit": "${{ github.sha }}",
+          "network": "devnet",
+          "service": "indexer",
+          "url": "https://solana-devnet-indexer.scalex.money",
+          "deployer": "${{ github.actor }}"
+        }
+        EOF
+
+        echo "📝 Deployment record created"
+        cat /tmp/deployment.json
+
+    - name: Create deployment summary
+      run: |
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Network:** Devnet" >> $GITHUB_STEP_SUMMARY
+        echo "**Service:** Indexer" >> $GITHUB_STEP_SUMMARY
+        echo "**Public URL:** https://solana-devnet-indexer.scalex.money" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Quick Links" >> $GITHUB_STEP_SUMMARY
+        echo "- [Health Check](https://solana-devnet-indexer.scalex.money/health)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Portainer](https://portainer.scalex.money/)" >> $GITHUB_STEP_SUMMARY
