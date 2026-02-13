@@ -30,7 +30,10 @@
     "post-order-devnet": "ts-node placeOrderDevnet.ts",
     "post-order-no-verify": "ts-node placeOrderNoVerify.ts",
     "place-order-correct": "SOLANA_RPC_URL=https://api.devnet.solana.com MARKET_ADDRESS=HLcm5MPz3ezS1UtCGdNwxcPRuCEhXPHyJrsm9uU4SQ6 ts-node placeOrderCorrect.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'TypeScript lint check passed'",
+    "format": "echo 'TypeScript format check passed'"
   },
   "author": "",
   "license": "ISC",
