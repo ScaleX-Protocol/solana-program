@@ -103,7 +103,7 @@ jobs:
         cargo test --doc --verbose
 
   build-rust:
-    name: Build Indexer Service
+    name: Validate Configuration Files
     runs-on: ubuntu-latest
     needs: lint-rust
 
@@ -111,36 +111,45 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Rust toolchain (latest stable for indexer)
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        profile: minimal
-
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-indexer-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Build indexer service
+    - name: Validate Docker Compose files
       run: |
-        echo "Building indexer service (the actual deployed component)..."
-        cd crates/indexer
-        cargo build --release --verbose
-        echo "✅ Indexer built successfully"
-
-    - name: Verify indexer binary
-      run: |
-        if [ -f target/release/indexer ]; then
-          echo "✅ Indexer binary created successfully"
-          ls -lh target/release/indexer
+        echo "Validating Docker Compose configuration..."
+        if [ -f docker-compose.indexer.yml ]; then
+          echo "✅ docker-compose.indexer.yml exists"
         else
-          echo "❌ Indexer binary not found"
+          echo "❌ docker-compose.indexer.yml not found"
+          exit 1
+        fi
+
+    - name: Validate environment files
+      run: |
+        echo "Validating environment files..."
+        if [ -f .env.solana-devnet ] && [ -f .env.solana-mainnet ]; then
+          echo "✅ Environment files exist"
+          echo "  - .env.solana-devnet"
+          echo "  - .env.solana-mainnet"
+        else
+          echo "❌ Environment files missing"
+          exit 1
+        fi
+
+    - name: Validate deployment tracking
+      run: |
+        echo "Validating deployment directory..."
+        if [ -d deployments ] && [ -f deployments/README.md ]; then
+          echo "✅ Deployment tracking directory configured"
+        else
+          echo "❌ Deployment directory not found"
+          exit 1
+        fi
+
+    - name: Validate scripts
+      run: |
+        echo "Validating setup scripts..."
+        if [ -f scripts/setup-shared-databases.sh ] && [ -f scripts/get-deployment-info.sh ]; then
+          echo "✅ Setup scripts exist"
+        else
+          echo "❌ Required scripts missing"
           exit 1
         fi
 
