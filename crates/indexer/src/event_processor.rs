@@ -41,6 +41,8 @@ fn extract_market_name_from_logs(tx: &EncodedConfirmedTransactionWithStatusMeta)
 }
 
 /// Process CreateMarket event and extract market data
+/// NOTE: Markets are now indexed by the market scanner on startup.
+/// This function is kept for logging but doesn't insert markets to avoid duplicates/fake markets.
 pub async fn process_create_market(
     tx: &EncodedConfirmedTransactionWithStatusMeta,
     signature: &str,
@@ -51,55 +53,22 @@ pub async fn process_create_market(
     let account_keys = extract_account_keys(tx);
 
     if account_keys.len() >= 3 {
-        // OpenBook CreateMarket typically has these accounts:
-        // The market address is usually one of the early accounts
-        let market_address = account_keys
+        // Just log the CreateMarket event for debugging
+        // The actual market will be indexed by the market scanner
+        let potential_market = account_keys
             .get(0)
             .cloned()
             .unwrap_or_else(|| format!("market_{}", slot));
 
-        let base_mint = account_keys
-            .get(1)
-            .cloned()
-            .unwrap_or_else(|| "unknown".to_string());
-
-        let quote_mint = account_keys
-            .get(2)
-            .cloned()
-            .unwrap_or_else(|| "unknown".to_string());
-
-        // Try to extract market name from logs, fallback to generated name
-        let symbol = extract_market_name_from_logs(tx).unwrap_or_else(|| {
-            // Generate a symbol from mint addresses
-            // This is a heuristic - ideally parse from instruction data
-            format!(
-                "{}/{}",
-                &base_mint[..4.min(base_mint.len())].to_uppercase(),
-                &quote_mint[..4.min(quote_mint.len())].to_uppercase()
-            )
-        });
-
         info!(
-            "  📊 CreateMarket: {} - Symbol: {} (base: {}, quote: {})",
-            &market_address[..12.min(market_address.len())],
-            symbol,
-            &base_mint[..12.min(base_mint.len())],
-            &quote_mint[..12.min(quote_mint.len())]
+            "  📊 CreateMarket event detected (tx: {})",
+            &signature[..12.min(signature.len())]
         );
-
-        // Insert market into database
-        db.upsert_market(
-            &market_address,
-            &base_mint,
-            &quote_mint,
-            &symbol,
-            8, // Default base decimals
-            6, // Default quote decimals
-            timestamp,
-        )
-        .await?;
-
-        info!("  ✅ Market '{}' stored in database", symbol);
+        info!(
+            "     Potential market address: {}",
+            &potential_market[..12.min(potential_market.len())]
+        );
+        info!("     Note: Market will be indexed by on-chain account scanner");
     }
 
     Ok(())

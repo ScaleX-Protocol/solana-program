@@ -3,6 +3,7 @@ pub mod api;
 pub mod db;
 pub mod event_processor;
 pub mod indexer;
+pub mod market_scanner;
 pub mod types;
 pub mod utils;
 

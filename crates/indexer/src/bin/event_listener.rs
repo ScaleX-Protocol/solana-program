@@ -310,8 +310,22 @@ async fn main() {
         }
     };
 
-    // Backfill historical data
+    // First, scan and index all existing markets from on-chain data
     info!("");
+    info!("🔍 Step 1: Scanning for existing OpenBook markets on-chain...");
+    match solana_openbook_indexer::market_scanner::index_markets(&rpc_client, &pubkey, &db).await {
+        Ok(count) => {
+            info!("✅ Market scan complete: {} markets indexed", count);
+        }
+        Err(e) => {
+            error!("❌ Market scan failed: {}", e);
+            error!("⚠️  This may cause issues with order indexing!");
+        }
+    }
+    info!("");
+
+    // Backfill historical data
+    info!("🔍 Step 2: Backfilling historical transactions...");
     match backfill_history(&rpc_client, &pubkey, &events_processed, &db).await {
         Ok(tx_count) => {
             info!("🎉 Historical backfill complete: {} transactions", tx_count);
