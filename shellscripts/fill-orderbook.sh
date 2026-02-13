@@ -89,14 +89,9 @@ BALANCE=$(solana balance --url "$SOLANA_RPC_URL" | awk '{print $1}')
 print_success "Wallet: $WALLET_ADDRESS"
 print_success "Balance: $BALANCE SOL"
 
-# Warn if balance is low
+# Warn if balance is low (but don't block in non-interactive mode)
 if (( $(echo "$BALANCE < 5" | bc -l) )); then
-    print_warning "Low balance ($BALANCE SOL). You may need more SOL for funding trader wallets."
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+    print_warning "Low balance ($BALANCE SOL). Continuing anyway (use fewer traders if needed)..."
 fi
 
 # Navigate to scripts directory
