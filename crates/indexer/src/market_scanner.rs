@@ -31,7 +31,7 @@ pub async fn scan_markets(
     // Create filter for Market accounts (discriminator match)
     // Using raw bytes since Base58 encoding might have issues
     let filters = vec![
-        RpcFilterType::Memcmp(Memcmp::new_match_bytes(
+        RpcFilterType::Memcmp(Memcmp::new_raw_bytes(
             0, // offset: discriminator is at the start
             MARKET_DISCRIMINATOR.to_vec(),
         )),
