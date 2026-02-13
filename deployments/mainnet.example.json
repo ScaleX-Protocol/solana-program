@@ -1,0 +1,44 @@
+{
+  "network": "mainnet-beta",
+  "lastUpdated": "2026-02-13T10:00:00Z",
+  "deployments": [
+    {
+      "timestamp": "2026-02-13T10:00:00Z",
+      "commit": "abc123def456...",
+      "branch": "main",
+      "deployer": "deployer_wallet_address",
+      "deployed_by": "github_username",
+      "workflow_run": "123456789",
+      "programs": {
+        "openbook_v2": "mainnet_program_id",
+        "program_buffer": "buffer_account_address",
+        "upgrade_authority": "authority_wallet_address"
+      },
+      "markets": [
+        {
+          "name": "SOL/USDC",
+          "address": "market_public_key",
+          "baseMint": "So11111111111111111111111111111111111111112",
+          "quoteMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "baseLotSize": "100000000",
+          "quoteLotSize": "1000"
+        }
+      ],
+      "configuration": {
+        "solana_cli": "1.18.23",
+        "rust": "1.79.0",
+        "anchor": "0.28.0",
+        "verifiable_build": true
+      },
+      "rpc_endpoint": "https://api.mainnet-beta.solana.com",
+      "deployer_balance": "12.5 SOL",
+      "security": {
+        "audit_completed": true,
+        "clippy_warnings": "none",
+        "github_protection": "enabled",
+        "required_reviewers": ["reviewer1", "reviewer2"]
+      },
+      "status": "active"
+    }
+  ]
+}

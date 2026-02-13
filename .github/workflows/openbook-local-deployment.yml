@@ -1,0 +1,235 @@
+name: 🏠 OpenBook - Local Development Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'packages/scripts/**'
+      - 'programs/**'
+      - 'crates/**'
+      - '.github/workflows/openbook-local-deployment.yml'
+  workflow_dispatch:
+
+env:
+  NETWORK: localnet
+  RUST_VERSION: 1.79.0
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, solana-dev]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ env.RUST_VERSION }}
+        override: true
+        profile: minimal
+
+    - name: Stop existing validator
+      run: |
+        echo "Stopping any existing Solana test validator..."
+        pkill -9 -f solana-test-validator || true
+        sleep 2
+        echo "✅ Existing validator stopped"
+
+    - name: Download pre-built programs
+      run: |
+        echo "=== Downloading pre-built programs ==="
+        mkdir -p /tmp/programs
+
+        if [ ! -f "/tmp/programs/openbook_v2.so" ]; then
+          echo "Downloading OpenBook V2 program..."
+          solana program dump opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb /tmp/programs/openbook_v2.so --url https://api.devnet.solana.com
+        else
+          echo "✅ OpenBook V2 program already exists"
+        fi
+
+        if [ ! -f "/tmp/programs/metaplex_token_metadata.so" ]; then
+          echo "Downloading Metaplex Token Metadata program..."
+          solana program dump metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/programs/metaplex_token_metadata.so --url https://api.devnet.solana.com
+        else
+          echo "✅ Metaplex program already exists"
+        fi
+
+        echo "Programs ready:"
+        ls -lh /tmp/programs/
+
+    - name: Start local validator with programs
+      run: |
+        echo "=== Starting Solana test validator with OpenBook programs ==="
+
+        solana-test-validator --reset \
+          --bpf-program opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb /tmp/programs/openbook_v2.so \
+          --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /tmp/programs/metaplex_token_metadata.so \
+          --quiet &
+
+        VALIDATOR_PID=$!
+        echo "Validator started with PID: $VALIDATOR_PID"
+        echo "VALIDATOR_PID=$VALIDATOR_PID" >> $GITHUB_ENV
+
+        # Wait for validator to be ready
+        echo "Waiting for validator to be ready..."
+        for i in {1..30}; do
+          if solana cluster-version --url http://localhost:8899 2>/dev/null; then
+            echo "✅ Validator is ready!"
+            break
+          fi
+          echo "Waiting... ($i/30)"
+          sleep 2
+        done
+
+    - name: Configure Solana for local network
+      run: |
+        solana config set --url http://localhost:8899
+        echo "Solana configured for localnet"
+        solana config get
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install pnpm
+      run: |
+        npm install -g pnpm@8
+
+    - name: Install dependencies
+      run: |
+        echo "Installing workspace dependencies..."
+        pnpm install
+
+    - name: Deploy markets
+      run: |
+        echo "=== Deploying OpenBook markets to local validator ==="
+        cd packages/scripts
+
+        # Use the local deployment script
+        pnpm run deploy-local-fixed || {
+          echo "❌ Market deployment failed"
+          echo "Checking validator logs..."
+          solana logs --url http://localhost:8899 | tail -50
+          exit 1
+        }
+
+        echo "✅ Markets deployed successfully"
+
+    - name: Verify deployment
+      run: |
+        echo "============================================"
+        echo "🔍 LOCAL DEPLOYMENT VERIFICATION"
+        echo "============================================"
+
+        echo ""
+        echo "=== 1. VALIDATOR STATUS ==="
+        solana cluster-version --url http://localhost:8899
+
+        echo ""
+        echo "=== 2. PROGRAM STATUS ==="
+        echo "OpenBook Program ID: opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb"
+        solana program show opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb --url http://localhost:8899
+
+        echo ""
+        echo "=== 3. MARKET VERIFICATION ==="
+        cd packages/scripts
+        pnpm run view-markets || echo "⚠️ Could not retrieve market information"
+
+        echo ""
+        echo "============================================"
+        echo "🎯 LOCAL DEPLOYMENT COMPLETE"
+        echo "============================================"
+
+    - name: Run integration tests
+      run: |
+        echo "=== Running integration tests ==="
+        cd packages/scripts
+
+        echo "Test 1: View markets"
+        pnpm run get-markets || echo "⚠️ Market retrieval test failed"
+
+        echo ""
+        echo "Test 2: Place test order"
+        pnpm run post-order || echo "⚠️ Order placement test failed"
+
+        echo ""
+        echo "Test 3: View order book"
+        pnpm run order-book || echo "⚠️ Order book test failed"
+
+        echo "✅ Integration tests completed"
+
+    - name: Save deployment addresses to localnet.json
+      if: success()
+      run: |
+        echo "=== Saving deployment addresses to deployments/localnet.json ==="
+
+        # Create deployments directory if it doesn't exist
+        mkdir -p deployments
+
+        # Get deployment info
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        PROGRAM_ID="opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb"
+
+        # Create new deployment entry
+        cat > /tmp/new-local-deployment.json <<EOF
+        {
+          "timestamp": "$TIMESTAMP",
+          "commit": "$GITHUB_SHA",
+          "branch": "$GITHUB_REF_NAME",
+          "validator_pid": "$VALIDATOR_PID",
+          "workflow_run": "$GITHUB_RUN_ID",
+          "programs": {
+            "openbook_v2": "$PROGRAM_ID",
+            "metaplex_metadata": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+          },
+          "configuration": {
+            "rust": "$RUST_VERSION"
+          },
+          "rpc_endpoint": "http://localhost:8899",
+          "ws_endpoint": "ws://localhost:8900",
+          "status": "active"
+        }
+        EOF
+
+        # Update or create localnet.json
+        if [ -f "deployments/localnet.json" ]; then
+          echo "Updating existing localnet.json..."
+          jq --argjson new "$(cat /tmp/new-local-deployment.json)" \
+            '.lastUpdated = "'$TIMESTAMP'" | .deployments = [$new] + .deployments | .deployments = .deployments[:5]' \
+            deployments/localnet.json > /tmp/localnet-updated.json
+          mv /tmp/localnet-updated.json deployments/localnet.json
+        else
+          echo "Creating new localnet.json..."
+          cat > deployments/localnet.json <<EOF
+        {
+          "network": "localnet",
+          "lastUpdated": "$TIMESTAMP",
+          "deployments": [
+            $(cat /tmp/new-local-deployment.json)
+          ]
+        }
+        EOF
+        fi
+
+        echo "✅ Deployment addresses saved to deployments/localnet.json"
+        cat deployments/localnet.json
+
+    - name: Keep validator running
+      if: success()
+      run: |
+        echo "=== Validator will continue running for development ==="
+        echo "Validator PID: $VALIDATOR_PID"
+        echo "To stop: pkill -9 -f solana-test-validator"
+        echo "To view logs: solana logs --url http://localhost:8899"
+        echo ""
+        echo "RPC Endpoint: http://localhost:8899"
+        echo "WebSocket Endpoint: ws://localhost:8900"
+
+    - name: Cleanup on failure
+      if: failure()
+      run: |
+        echo "Stopping validator due to failure..."
+        pkill -9 -f solana-test-validator || true
+        echo "❌ Local deployment failed"

@@ -1,0 +1,43 @@
+{
+  "network": "devnet",
+  "lastUpdated": "2026-02-13T10:00:00Z",
+  "deployments": [
+    {
+      "timestamp": "2026-02-13T10:00:00Z",
+      "commit": "abc123def456...",
+      "branch": "devnet-deployment",
+      "deployer": "deployer_wallet_address",
+      "workflow_run": "123456789",
+      "programs": {
+        "openbook_v2": "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb",
+        "metaplex_metadata": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+      },
+      "markets": [
+        {
+          "name": "BTC/USDT",
+          "address": "market_public_key",
+          "baseMint": "btc_token_address",
+          "quoteMint": "usdt_token_address",
+          "baseLotSize": "100",
+          "quoteLotSize": "10"
+        }
+      ],
+      "tokens": [
+        {
+          "symbol": "BTC",
+          "name": "Wrapped Bitcoin",
+          "address": "token_mint_address",
+          "decimals": 8
+        }
+      ],
+      "configuration": {
+        "solana_cli": "1.18.23",
+        "rust": "1.79.0",
+        "anchor": "0.28.0"
+      },
+      "rpc_endpoint": "https://api.devnet.solana.com",
+      "deployer_balance": "5.5 SOL",
+      "status": "active"
+    }
+  ]
+}

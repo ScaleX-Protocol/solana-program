@@ -27,6 +27,9 @@
     "create-market-robust": "ts-node createMarketRobust.ts",
     "place-orders": "ts-node placeOrders.ts",
     "multi-wallet-trade": "ts-node multiWalletTrading.ts",
+    "post-order-devnet": "ts-node placeOrderDevnet.ts",
+    "post-order-no-verify": "ts-node placeOrderNoVerify.ts",
+    "place-order-correct": "SOLANA_RPC_URL=https://api.devnet.solana.com MARKET_ADDRESS=HLcm5MPz3ezS1UtCGdNwxcPRuCEhXPHyJrsm9uU4SQ6 ts-node placeOrderCorrect.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

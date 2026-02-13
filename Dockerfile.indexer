@@ -1,0 +1,75 @@
+# Multi-stage build for OpenBook Indexer
+FROM rust:1.79.0-slim as rust-builder
+
+WORKDIR /app
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Rust workspace
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ ./crates/
+
+# Build indexer
+RUN cargo build --release --bin openbook-indexer
+
+# Node.js stage for TypeScript scripts
+FROM node:18-alpine as node-builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/ ./packages/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build TypeScript packages
+RUN pnpm -r build
+
+# Final runtime stage
+FROM debian:bookworm-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    postgresql-client \
+    curl \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Rust binaries
+COPY --from=rust-builder /app/target/release/openbook-indexer /usr/local/bin/
+
+# Copy Node.js runtime and built packages
+COPY --from=node-builder /usr/local/bin/node /usr/local/bin/
+COPY --from=node-builder /app/node_modules ./node_modules
+COPY --from=node-builder /app/packages ./packages
+
+# Copy application files
+COPY scripts/ ./scripts/
+COPY deployments/ ./deployments/
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+# Expose ports
+EXPOSE 42090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+  CMD curl -f http://localhost:42090/health || exit 1
+
+# Run indexer
+CMD ["openbook-indexer"]

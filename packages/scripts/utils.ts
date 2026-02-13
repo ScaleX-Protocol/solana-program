@@ -18,16 +18,14 @@ import * as os from "os";
 import { createAccount } from "./solana_utils";
 import { MintUtils } from "./mint_utils";
 
-// export const RPC = "http://127.0.0.1:8899";
-// export const RPC = "https://api.devnet.solana.com";
-// export const RPC= "https://api.testnet.solana.com";
-export const RPC= "https://api.mainnet-beta.solana.com";
+// RPC URL - respects SOLANA_RPC_URL environment variable
+export const RPC = process.env.SOLANA_RPC_URL || "http://127.0.0.1:8899";
 
 export const programId = new PublicKey(
   "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb"
 );
 
-export const authorityFile = `${os.homedir()}/.config/solana/id.json`;
+export const authorityFile = process.env.ANCHOR_WALLET || `${os.homedir()}/.config/solana/id.json`;
 export const authority = getKeypairFromFile(authorityFile);
 export const connection = new Connection(RPC, {
   commitment: "finalized",

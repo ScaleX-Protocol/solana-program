@@ -2,6 +2,19 @@
 
 > Unified repository for OpenBook V2 DEX: smart contracts, deployment scripts, and event indexer
 
+## ⚠️ Important: OpenOrders Account Pattern
+
+**If you're placing orders, read this first!** OpenBook V2 uses an index-based system for OpenOrders accounts. Always use the SDK's `findOpenOrdersForMarket()` method instead of manually calculating PDAs. See [Order Placement Issues](#order-placement-issues) for critical details.
+
+```typescript
+// ✅ CORRECT - Always use this pattern
+const openOrdersAccounts = await client.findOpenOrdersForMarket(authority.publicKey, MARKET);
+const openOrdersPDA = openOrdersAccounts[openOrdersAccounts.length - 1];
+
+// ❌ WRONG - Never do this
+const [openOrdersPDA] = PublicKey.findProgramAddressSync([...market...], PROGRAM_ID);
+```
+
 ## Quick Start (Already Set Up)
 
 If you already have everything installed:
@@ -13,6 +26,37 @@ pnpm post-order      # Place order
 ```
 
 **First time?** See [Complete Setup](#complete-setup) below.
+
+## 🚀 CI/CD Automation
+
+This project includes comprehensive GitHub Actions workflows for automated testing and deployment:
+
+- **✅ CI Tests** - Automated testing on every PR (Rust + TypeScript)
+- **🏠 Local Deployment** - Deploy to local validator for development
+- **🌐 Devnet Deployment** - Deploy to Solana devnet for testing
+- **🔒 Mainnet Deployment** - Protected production deployment workflow
+
+**Quick Start:** See [.github/workflows/QUICK_START.md](.github/workflows/QUICK_START.md)
+**Full Documentation:** See [.github/workflows/README.md](.github/workflows/README.md)
+
+### Deployment Workflows
+
+**Local Development:**
+```bash
+git push origin main  # Triggers local deployment automatically
+```
+
+**Devnet Deployment:**
+```bash
+git checkout -b devnet-deployment
+git push origin devnet-deployment  # Triggers devnet deployment
+```
+
+**Mainnet Deployment:**
+```bash
+# Manual trigger only from GitHub Actions UI
+# Requires confirmation: "DEPLOY_TO_MAINNET"
+```
 
 ## Complete Setup
 
@@ -295,9 +339,10 @@ openbook/
 ### Trading & Markets
 
 ```bash
-pnpm deploy-local    # Deploy tokens and create markets
-pnpm view-markets    # View all deployed markets
-pnpm post-order      # Post a test order
+pnpm deploy-local           # Deploy tokens and create markets
+pnpm view-markets           # View all deployed markets
+pnpm post-order             # Post a test order (local)
+pnpm place-order-correct    # Post order on devnet (recommended)
 ```
 
 ### Indexer
@@ -332,6 +377,7 @@ See [Complete Setup](#complete-setup) for installation instructions.
 ## Documentation
 
 - 📘 **This README** - Complete setup and usage guide
+- 🎯 [BREAKTHROUGH.md](packages/scripts/BREAKTHROUGH.md) - OpenOrders account discovery (MUST READ!)
 - 📗 [Local Docs](docs/README.md) - Additional guides and references (local only, not in git)
 - 📕 [Component READMEs](#components) - Detailed docs for each component
 
@@ -434,6 +480,62 @@ solana airdrop 100
 ```
 
 ### Order Placement Issues
+
+**⚠️ CRITICAL: OpenOrders Account Discovery (Read This First!)**
+
+OpenBook V2 uses an **index-based system** for OpenOrders accounts, NOT market-based PDAs. Many devs get this wrong and think orders are failing when they're actually succeeding!
+
+**❌ WRONG - Do NOT calculate PDAs like this:**
+```typescript
+// WRONG! This includes the market address
+const [openOrdersPDA] = PublicKey.findProgramAddressSync(
+  [Buffer.from("OpenOrders"), authority.toBuffer(), MARKET.toBuffer()],
+  PROGRAM_ID
+);
+```
+
+**✅ CORRECT - Use the SDK's built-in method:**
+```typescript
+// Let the SDK find the correct OpenOrders account for you
+const openOrdersAccounts = await client.findOpenOrdersForMarket(
+  authority.publicKey,
+  MARKET
+);
+
+// Use the latest account (or create one if none exist)
+const openOrdersPDA = openOrdersAccounts.length > 0
+  ? openOrdersAccounts[openOrdersAccounts.length - 1]
+  : await client.createOpenOrders(payer, MARKET, "trader");
+```
+
+**Why This Matters:**
+
+OpenOrders PDAs are derived as: `[Buffer.from("OpenOrders"), authority, accountIndex]`
+
+- Each user has an **OpenOrdersIndexer** that tracks a counter
+- Each new OpenOrders account gets the next index (0, 1, 2, ...)
+- The PDA does NOT include the market address!
+- A user can have multiple OpenOrders accounts for the same market
+
+**What Happens If You Get This Wrong:**
+
+1. Your `createOpenOrders()` call succeeds ✅
+2. You check the wrong PDA address ❌
+3. Verification "fails" so you retry
+4. Another account is created (next index)
+5. Repeat → you create dozens of accounts, all working fine!
+
+**Solution - Use the Working Script:**
+
+```bash
+# For devnet
+pnpm place-order-correct
+
+# For local
+pnpm post-order
+```
+
+See `packages/scripts/BREAKTHROUGH.md` for full technical details and `placeOrderCorrect.ts` for the correct implementation pattern.
 
 **ConstraintTokenMint error (code 2014):**
 

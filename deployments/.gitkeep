@@ -1,0 +1,4 @@
+# This directory stores deployment addresses
+# - devnet.json: Devnet deployments
+# - mainnet.json: Mainnet deployments
+# - localnet.json: Local test deployments

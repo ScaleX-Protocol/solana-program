@@ -1,0 +1,32 @@
+{
+  "network": "localnet",
+  "lastUpdated": "2026-02-13T10:00:00Z",
+  "deployments": [
+    {
+      "timestamp": "2026-02-13T10:00:00Z",
+      "commit": "abc123def456...",
+      "branch": "main",
+      "validator_pid": "12345",
+      "workflow_run": "123456789",
+      "programs": {
+        "openbook_v2": "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb",
+        "metaplex_metadata": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+      },
+      "markets": [
+        {
+          "name": "BTC/USDT",
+          "address": "local_market_address",
+          "baseMint": "local_btc_mint",
+          "quoteMint": "local_usdt_mint"
+        }
+      ],
+      "configuration": {
+        "rust": "1.79.0"
+      },
+      "rpc_endpoint": "http://localhost:8899",
+      "ws_endpoint": "ws://localhost:8900",
+      "status": "active",
+      "notes": "Local test validator - for development only"
+    }
+  ]
+}

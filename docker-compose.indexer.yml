@@ -1,0 +1,123 @@
+# OpenBook Indexer Docker Compose Configuration
+# Uses shared infrastructure from monitoring-tools (postgres-database, redis, timescaledb)
+
+services:
+  # OpenBook indexer service
+  openbook-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile.indexer
+    container_name: ${NETWORK:-devnet}-openbook-indexer
+    env_file:
+      - .env.solana-${NETWORK:-devnet}
+    environment:
+      # Database connection to shared PostgreSQL (network-specific database)
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres-database:5432/${OPENBOOK_DATABASE:-openbook_devnet}
+      - REDIS_URL=redis://redis:6379
+      - INDEXER_PORT=42090
+      # Network identification for Redis key prefixing
+      - NETWORK=${NETWORK:-devnet}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - OPENBOOK_PROGRAM_ID=${OPENBOOK_PROGRAM_ID:-opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb}
+    networks:
+      - infrastructure
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - ./deployments:/app/deployments:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:42090/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    ports:
+      - "${INDEXER_PORT:-42090}:42090"  # Expose for direct access (optional)
+    labels:
+      # Traefik configuration for subdomain access
+      - traefik.enable=true
+      - traefik.http.services.${NETWORK:-devnet}-openbook-indexer.loadbalancer.server.port=42090
+      # Dynamic Router based on NETWORK: solana-devnet-indexer.scalex.money
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-indexer.rule=Host(`solana-${NETWORK:-devnet}-indexer.scalex.money`)
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-indexer.entrypoints=websecure
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-indexer.tls.certresolver=letsencrypt
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-indexer.service=${NETWORK:-devnet}-openbook-indexer
+      # HTTP redirect
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-indexer-http.rule=Host(`solana-${NETWORK:-devnet}-indexer.scalex.money`)
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-indexer-http.entrypoints=web
+
+  # WebSocket service for real-time updates
+  openbook-websocket:
+    build:
+      context: ./websocket-service
+      dockerfile: Dockerfile
+    container_name: ${NETWORK:-devnet}-openbook-websocket
+    env_file:
+      - .env.solana-${NETWORK:-devnet}
+    environment:
+      - PORT=42091
+      - HEALTH_PORT=8080
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres-database:5432/${OPENBOOK_DATABASE:-openbook_devnet}
+      - CONSUMER_GROUP=${NETWORK:-devnet}-openbook-websocket-consumers
+      - CONSUMER_ID=ws-consumer-1
+      - BATCH_SIZE=10
+      - POLL_INTERVAL=1000
+      - WS_PING_INTERVAL=30000
+      - MAX_CONNECTIONS=1000
+      - NETWORK=${NETWORK:-devnet}
+    networks:
+      - infrastructure
+    restart: unless-stopped
+    ports:
+      - "${WEBSOCKET_PORT:-42091}:42091"  # Expose for direct access (optional)
+    labels:
+      # Traefik configuration for WebSocket subdomain access
+      - traefik.enable=true
+      - traefik.http.services.${NETWORK:-devnet}-openbook-websocket.loadbalancer.server.port=42091
+      # WebSocket middleware
+      - traefik.http.middlewares.openbook-websocket-headers.headers.customRequestHeaders.Connection=Upgrade
+      - traefik.http.middlewares.openbook-websocket-headers.headers.customRequestHeaders.Upgrade=websocket
+      # Dynamic WebSocket Router: solana-devnet-ws.scalex.money
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-ws.rule=Host(`solana-${NETWORK:-devnet}-ws.scalex.money`)
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-ws.entrypoints=websecure
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-ws.tls.certresolver=letsencrypt
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-ws.service=${NETWORK:-devnet}-openbook-websocket
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-ws.middlewares=openbook-websocket-headers
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-ws.priority=100
+      # HTTP redirect
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-ws-http.rule=Host(`solana-${NETWORK:-devnet}-ws.scalex.money`)
+      - traefik.http.routers.${NETWORK:-devnet}-openbook-ws-http.entrypoints=web
+
+  # Analytics service
+  openbook-analytics:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    container_name: ${NETWORK:-devnet}-openbook-analytics
+    env_file:
+      - .env.solana-${NETWORK:-devnet}
+    environment:
+      - PORT=42092
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres-database:5432/${OPENBOOK_DATABASE:-openbook_devnet}
+      - TIMESCALE_DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@timescaledb:5432/${OPENBOOK_ANALYTICS_DATABASE:-analytics_openbook_devnet}
+      - CONSUMER_GROUP=${NETWORK:-devnet}-openbook-analytics-consumers
+      - CONSUMER_ID=analytics-consumer-1
+      - ANALYTICS_BATCH_SIZE=5
+      - ANALYTICS_POLL_INTERVAL=5000
+      - CACHE_TTL=300
+      - ENABLE_DAILY_SNAPSHOTS=true
+      - ENABLE_HOURLY_AGGREGATION=true
+      - ENABLE_CACHE_REFRESH=true
+      - NETWORK=${NETWORK:-devnet}
+    networks:
+      - infrastructure
+    restart: unless-stopped
+    labels:
+      # Traefik configuration
+      - traefik.enable=true
+
+networks:
+  infrastructure:
+    external: true
