@@ -29,13 +29,14 @@ pub async fn scan_markets(
     info!("🔍 Scanning for OpenBook V2 market accounts...");
 
     // Create filter for Market accounts (discriminator match)
+    // Discriminator in base58: dkokXHR3DTw
     let filters = vec![
         RpcFilterType::Memcmp(Memcmp::new(
             0, // offset: discriminator is at the start
-            MemcmpEncodedBytes::Bytes(MARKET_DISCRIMINATOR.to_vec()),
+            MemcmpEncodedBytes::Base58("dkokXHR3DTw".to_string()),
         )),
         // Additional filter: minimum data size for Market accounts (observed: 1132 bytes)
-        RpcFilterType::DataSize(1000),
+        RpcFilterType::DataSize(1132),
     ];
 
     let config = RpcProgramAccountsConfig {
