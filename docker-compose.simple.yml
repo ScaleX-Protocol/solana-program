@@ -14,16 +14,16 @@ services:
       - SOLANA_WS_URL=${SOLANA_WS_URL:-wss://api.devnet.solana.com}
       - OPENBOOK_PROGRAM_ID=${OPENBOOK_PROGRAM_ID:-opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb}
       - NETWORK=${NETWORK:-devnet}
-      - PORT=42090
+      - PORT=42070
     networks:
       - infrastructure
     restart: unless-stopped
     ports:
-      - "${INDEXER_PORT:-42090}:42090"
+      - "${INDEXER_PORT:-42090}:42070"
     labels:
       # Traefik configuration
       - traefik.enable=true
-      - traefik.http.services.solana-${NETWORK:-devnet}-indexer.loadbalancer.server.port=42090
+      - traefik.http.services.solana-${NETWORK:-devnet}-indexer.loadbalancer.server.port=42070
       # HTTPS route
       - traefik.http.routers.solana-${NETWORK:-devnet}-indexer.rule=Host(`solana-${NETWORK:-devnet}-indexer.scalex.money`)
       - traefik.http.routers.solana-${NETWORK:-devnet}-indexer.entrypoints=websecure
@@ -33,7 +33,7 @@ services:
       - traefik.http.routers.solana-${NETWORK:-devnet}-indexer-http.rule=Host(`solana-${NETWORK:-devnet}-indexer.scalex.money`)
       - traefik.http.routers.solana-${NETWORK:-devnet}-indexer-http.entrypoints=web
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:42090/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:42070/api/markets || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
