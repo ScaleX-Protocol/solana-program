@@ -259,8 +259,9 @@ async function main() {
   console.log("💰 Funding traders with SOL...");
   for (const trader of traders) {
     await fundWallet(connection, trader.publicKey, 2);
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between airdrops
   }
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay after all airdrops
   console.log("");
 
   // Setup token accounts and mint tokens
@@ -268,6 +269,7 @@ async function main() {
   for (let i = 0; i < traders.length; i++) {
     console.log(`   Trader ${i + 1}/${traders.length}...`);
     await setupTraderTokenAccounts(connection, authority, traders[i], market);
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between setups
   }
   console.log("");
 
@@ -293,7 +295,7 @@ async function main() {
         { limit: {} }
       );
 
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay to avoid rate limits
 
       // Place sell orders at different price levels
       const sellPrice = 110 + (i * 5) + (j * 2); // Ascending prices
@@ -308,7 +310,7 @@ async function main() {
         { limit: {} }
       );
 
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay to avoid rate limits
     }
   }
 
@@ -332,7 +334,7 @@ async function main() {
       { market: {} }
     );
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 4000)); // 4 second delay between market orders
 
     // Market sell
     await placeOrderForTrader(
@@ -346,7 +348,7 @@ async function main() {
       { market: {} }
     );
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 4000)); // 4 second delay between market orders
   }
 
   console.log("\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
