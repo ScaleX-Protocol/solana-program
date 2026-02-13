@@ -2,11 +2,13 @@
 # Deploys the actual indexer service from crates/indexer
 
 services:
+  # API Server - serves the REST API
   solana-indexer:
     build:
       context: .
       dockerfile: Dockerfile.simple
     container_name: solana-${NETWORK:-devnet}-indexer
+    command: ["indexer-api"]
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres-database:5432/${OPENBOOK_DATABASE:-openbook_devnet}
       - REDIS_URL=redis://redis:6379
@@ -38,6 +40,24 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # Event Listener - indexes blockchain data
+  solana-listener:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    container_name: solana-${NETWORK:-devnet}-listener
+    command: ["indexer-listener"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres-database:5432/${OPENBOOK_DATABASE:-openbook_devnet}
+      - REDIS_URL=redis://redis:6379
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      - SOLANA_WS_URL=${SOLANA_WS_URL:-wss://api.devnet.solana.com}
+      - OPENBOOK_PROGRAM_ID=${OPENBOOK_PROGRAM_ID:-opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb}
+      - NETWORK=${NETWORK:-devnet}
+    networks:
+      - infrastructure
+    restart: unless-stopped
 
 networks:
   infrastructure:
