@@ -5,8 +5,8 @@ on:
     branches: [ main ]
     paths:
       - 'crates/indexer/**'
-      - 'docker-compose.simple.yml'
-      - 'Dockerfile.simple'
+      - 'docker-compose.indexer.yml'
+      - 'Dockerfile.indexer'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/deploy-indexer-devnet.yml'
@@ -25,7 +25,7 @@ env:
   NETWORK: devnet
   SERVER_HOST: 152.53.225.25
   SERVER_USER: root
-  DOCKER_COMPOSE_FILE: docker-compose.simple.yml
+  DOCKER_COMPOSE_FILE: docker-compose.indexer.yml
   PROJECT_NAME: solana-devnet
 
 jobs:
@@ -79,10 +79,10 @@ jobs:
         echo "🐳 Deploying indexer..."
 
         # Stop existing container
-        docker-compose -f docker-compose.simple.yml -p solana-devnet down 2>/dev/null || true
+        docker-compose -f docker-compose.indexer.yml -p solana-devnet down 2>/dev/null || true
 
         # Deploy new version
-        docker-compose -f docker-compose.simple.yml -p solana-devnet up -d --build
+        docker-compose -f docker-compose.indexer.yml -p solana-devnet up -d --build
 
         echo "✓ Indexer deployed"
 
