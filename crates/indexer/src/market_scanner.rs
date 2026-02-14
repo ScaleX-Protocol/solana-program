@@ -30,33 +30,18 @@ pub async fn scan_markets(
     info!("   Program ID: {}", program_id);
     info!("   Discriminator (hex): {:02x?}", MARKET_DISCRIMINATOR);
 
-    // First try: Get ALL program accounts without filters to see if we can fetch anything
-    info!("🔍 Step 1: Fetching ALL program accounts (no filters)...");
-    let all_accounts = rpc_client.get_program_accounts(program_id).await?;
-    info!("✅ Total accounts owned by program: {}", all_accounts.len());
-
-    if all_accounts.is_empty() {
-        warn!("⚠️  No accounts found for this program at all!");
-        return Ok(Vec::new());
-    }
-
-    // Log first few account sizes to debug
-    for (i, (pubkey, account)) in all_accounts.iter().take(5).enumerate() {
-        info!("   Account {}: {} - size: {} bytes, first 8 bytes: {:02x?}",
-            i, pubkey, account.data.len(),
-            if account.data.len() >= 8 { &account.data[0..8] } else { &[] });
-    }
-
-    // Now try with discriminator filter only (no data size filter)
-    info!("");
-    info!("🔍 Step 2: Filtering by discriminator only...");
+    // Instead of fetching all accounts first (which may timeout/fail),
+    // go straight to filtering by discriminator
+    info!("🔍 Creating filter with discriminator...");
     let filters = vec![
         RpcFilterType::Memcmp(Memcmp::new_base58_encoded(
             0, // offset: discriminator is at the start
             &MARKET_DISCRIMINATOR,
         )),
-        // Removed DataSize filter to debug
+        // DataSize removed temporarily for debugging
     ];
+
+    info!("✅ Filter created - fetching accounts...");
 
     let config = RpcProgramAccountsConfig {
         filters: Some(filters),
@@ -70,9 +55,20 @@ pub async fn scan_markets(
     };
 
     // Fetch all market accounts
-    let accounts = rpc_client
+    info!("🔍 Calling get_program_accounts_with_config...");
+    let accounts = match rpc_client
         .get_program_accounts_with_config(program_id, config)
-        .await?;
+        .await {
+            Ok(accts) => {
+                info!("✅ RPC call successful - got {} accounts", accts.len());
+                accts
+            }
+            Err(e) => {
+                warn!("❌ RPC call failed: {}", e);
+                warn!("    This likely means the RPC filter encoding is wrong");
+                return Ok(Vec::new());
+            }
+        };
 
     info!("✅ Found {} accounts matching discriminator", accounts.len());
 
