@@ -81,8 +81,9 @@ jobs:
       run: |
         echo "🐳 Deploying indexer..."
 
-        # Stop existing container
-        docker-compose -f docker-compose.indexer.yml -p solana-devnet down 2>/dev/null || true
+        # Stop and remove any existing containers by name
+        docker stop devnet-openbook-indexer 2>/dev/null || true
+        docker rm devnet-openbook-indexer 2>/dev/null || true
 
         # Deploy new version
         docker-compose -f docker-compose.indexer.yml -p solana-devnet up -d --build
@@ -94,15 +95,15 @@ jobs:
         echo "📋 Verifying deployment..."
         sleep 10
 
-        if docker ps | grep -q "solana-devnet-indexer"; then
+        if docker ps | grep -q "devnet-openbook-indexer"; then
           echo "✓ Container is running"
-          docker logs solana-devnet-indexer --tail 20
+          docker logs devnet-openbook-indexer --tail 20
           echo ""
           echo "✅ Deployment successful!"
           echo "Public URL: https://solana-devnet-indexer.scalex.money"
         else
           echo "❌ Container failed to start"
-          docker logs solana-devnet-indexer --tail 50 2>&1 || true
+          docker logs devnet-openbook-indexer --tail 50 2>&1 || true
           exit 1
         fi
 
