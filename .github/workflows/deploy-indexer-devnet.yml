@@ -34,11 +34,15 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        clean: false  # Disable clean to avoid permission issues with Docker-created files
-        submodules: false
+    - name: Update repository
+      run: |
+        # Manual git operations to avoid permission issues with Docker volumes
+        if [ -d .git ]; then
+          git fetch origin main
+          git reset --hard origin/main
+        else
+          git clone https://github.com/ScaleX-Protocol/solana-program.git .
+        fi
 
     - name: Ensure databases exist
       run: |
