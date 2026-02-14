@@ -36,6 +36,9 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        clean: true
+        submodules: false
 
     - name: Ensure databases exist
       run: |
@@ -140,6 +143,9 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        clean: true
+        submodules: false
 
     - name: Update deployment tracking
       run: |
