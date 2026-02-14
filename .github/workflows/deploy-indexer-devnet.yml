@@ -85,6 +85,16 @@ jobs:
         docker stop devnet-openbook-indexer 2>/dev/null || true
         docker rm devnet-openbook-indexer 2>/dev/null || true
 
+        # Check what's using port 42090
+        echo "Checking port 42090..."
+        sudo lsof -i :42090 || echo "Port appears free"
+
+        # List all containers using this port
+        docker ps -a --filter "publish=42090" --format "{{.Names}}: {{.Ports}}"
+
+        # Force cleanup Docker networking
+        docker network prune -f || true
+
         # Deploy new version
         docker-compose -f docker-compose.indexer.yml -p solana-devnet up -d --build
 
