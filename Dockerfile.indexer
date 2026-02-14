@@ -1,5 +1,5 @@
 # Multi-stage build for OpenBook Indexer
-FROM rust:1.79.0-slim as rust-builder
+FROM rust:1.93.0-slim as rust-builder
 
 WORKDIR /app
 
@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ ./crates/
 
-# Build indexer
-RUN cargo build --release --bin openbook-indexer
+# Build indexer binaries
+RUN cargo build --release --bin api-server --bin event-listener
 
 # Node.js stage for TypeScript scripts
 FROM node:18-alpine as node-builder
@@ -32,8 +32,7 @@ COPY packages/ ./packages/
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build TypeScript packages
-RUN pnpm -r build
+# No build step needed - packages use ts-node directly
 
 # Final runtime stage
 FROM debian:bookworm-slim
@@ -50,7 +49,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Rust binaries
-COPY --from=rust-builder /app/target/release/openbook-indexer /usr/local/bin/
+COPY --from=rust-builder /app/target/release/api-server /usr/local/bin/
+COPY --from=rust-builder /app/target/release/event-listener /usr/local/bin/
 
 # Copy Node.js runtime and built packages
 COPY --from=node-builder /usr/local/bin/node /usr/local/bin/
@@ -64,12 +64,15 @@ COPY deployments/ ./deployments/
 # Create logs directory
 RUN mkdir -p /app/logs
 
+# Make startup script executable
+RUN chmod +x /app/scripts/start-indexer.sh
+
 # Expose ports
 EXPOSE 42090
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-  CMD curl -f http://localhost:42090/health || exit 1
+  CMD curl -f http://localhost:42090/api/markets || exit 1
 
-# Run indexer
-CMD ["openbook-indexer"]
+# Run both indexer services (api-server + event-listener)
+CMD ["/app/scripts/start-indexer.sh"]

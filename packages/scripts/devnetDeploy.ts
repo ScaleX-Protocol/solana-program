@@ -10,11 +10,12 @@ import { OpenBookV2Client, findAllMarkets } from "@openbook-dex/openbook-v2";
 import { MintUtils } from "./mint_utils";
 import * as fs from "fs";
 
-// Devnet configuration - using already deployed program!
+// Devnet configuration - using official OpenBook V2 (for now, debug custom program separately)
 const DEVNET_RPC = "https://api.devnet.solana.com";
 const PROGRAM_ID = new PublicKey(
   "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb"
 );
+// Your custom program (having IDL issues): GesS1wVm85uRvvjYDAgCVK9MJU5icjsX3LX6GMfibKW1
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
