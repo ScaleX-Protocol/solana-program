@@ -119,10 +119,13 @@ jobs:
         echo "🔍 Verifying public access..."
         sleep 15
 
-        # Check health endpoint
+        # Check health endpoint or API endpoint
         for i in {1..5}; do
-          if curl -f -s https://solana-devnet-indexer.scalex.money/health; then
-            echo "✅ Indexer is publicly accessible!"
+          if curl -f -s https://solana-devnet-indexer.scalex.money/health > /dev/null 2>&1; then
+            echo "✅ Health endpoint is accessible!"
+            exit 0
+          elif curl -f -s https://solana-devnet-indexer.scalex.money/api/markets > /dev/null 2>&1; then
+            echo "✅ API endpoint is accessible!"
             exit 0
           fi
           echo "Attempt $i failed, retrying in 10s..."

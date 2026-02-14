@@ -14,6 +14,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
+use chrono;
 
 #[tokio::main]
 async fn main() {
@@ -39,6 +40,8 @@ async fn main() {
     let app_state = Arc::new(AppState { db });
 
     let app = Router::new()
+        // Health check endpoint
+        .route("/health", get(health_check))
         // All 15 endpoints
         .route("/api/kline", get(get_kline))
         .route("/api/sync-status", get(get_sync_status))
@@ -153,6 +156,14 @@ struct AppState {
 // ============================================================================
 // ENDPOINT HANDLERS
 // ============================================================================
+
+async fn health_check() -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "status": "healthy",
+        "service": "solana-openbook-indexer",
+        "timestamp": chrono::Utc::now().timestamp()
+    }))
+}
 
 async fn get_kline(
     State(state): State<Arc<AppState>>,
