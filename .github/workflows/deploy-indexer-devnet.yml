@@ -34,16 +34,10 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - name: Clean up Docker-created files
-      run: |
-        # Remove Docker-created log files that may have permission issues
-        sudo rm -rf logs/ || true
-        sudo find . -name "*.log" -delete || true
-
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        clean: true
+        clean: false  # Disable clean to avoid permission issues with Docker-created files
         submodules: false
 
     - name: Ensure databases exist
