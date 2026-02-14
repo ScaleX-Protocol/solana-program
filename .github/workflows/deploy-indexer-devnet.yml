@@ -38,9 +38,17 @@ jobs:
       run: |
         # Manual git operations to avoid permission issues with Docker volumes
         if [ -d .git ]; then
+          echo "Updating existing repository..."
+          git fetch origin main
+          git reset --hard origin/main
+        elif [ "$(ls -A)" ]; then
+          echo "Directory not empty, initializing git..."
+          git init
+          git remote add origin https://github.com/ScaleX-Protocol/solana-program.git || git remote set-url origin https://github.com/ScaleX-Protocol/solana-program.git
           git fetch origin main
           git reset --hard origin/main
         else
+          echo "Cloning repository..."
           git clone https://github.com/ScaleX-Protocol/solana-program.git .
         fi
 
