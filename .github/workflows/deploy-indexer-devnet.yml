@@ -81,16 +81,13 @@ jobs:
       run: |
         echo "🐳 Deploying indexer..."
 
-        # Stop and remove any existing containers by name
-        docker stop devnet-openbook-indexer 2>/dev/null || true
-        docker rm devnet-openbook-indexer 2>/dev/null || true
+        # Stop and remove all existing indexer containers (both naming patterns)
+        docker stop devnet-openbook-indexer solana-devnet-indexer 2>/dev/null || true
+        docker rm devnet-openbook-indexer solana-devnet-indexer 2>/dev/null || true
 
-        # Check what's using port 42090
-        echo "Checking port 42090..."
-        sudo lsof -i :42090 || echo "Port appears free"
-
-        # List all containers using this port
-        docker ps -a --filter "publish=42090" --format "{{.Names}}: {{.Ports}}"
+        # Stop any containers using port 42090
+        docker ps -a --filter "publish=42090" --format "{{.Names}}" | xargs -r docker stop 2>/dev/null || true
+        docker ps -a --filter "publish=42090" --format "{{.Names}}" | xargs -r docker rm 2>/dev/null || true
 
         # Force cleanup Docker networking
         docker network prune -f || true
