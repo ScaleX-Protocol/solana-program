@@ -27,16 +27,35 @@ pub async fn scan_markets(
     program_id: &Pubkey,
 ) -> Result<Vec<MarketAccount>, Box<dyn std::error::Error>> {
     info!("🔍 Scanning for OpenBook V2 market accounts...");
+    info!("   Program ID: {}", program_id);
+    info!("   Discriminator (hex): {:02x?}", MARKET_DISCRIMINATOR);
 
-    // Create filter for Market accounts (discriminator match)
-    // Use new_base58_encoded which encodes the raw bytes to base58 internally
+    // First try: Get ALL program accounts without filters to see if we can fetch anything
+    info!("🔍 Step 1: Fetching ALL program accounts (no filters)...");
+    let all_accounts = rpc_client.get_program_accounts(program_id).await?;
+    info!("✅ Total accounts owned by program: {}", all_accounts.len());
+
+    if all_accounts.is_empty() {
+        warn!("⚠️  No accounts found for this program at all!");
+        return Ok(Vec::new());
+    }
+
+    // Log first few account sizes to debug
+    for (i, (pubkey, account)) in all_accounts.iter().take(5).enumerate() {
+        info!("   Account {}: {} - size: {} bytes, first 8 bytes: {:02x?}",
+            i, pubkey, account.data.len(),
+            if account.data.len() >= 8 { &account.data[0..8] } else { &[] });
+    }
+
+    // Now try with discriminator filter only (no data size filter)
+    info!("");
+    info!("🔍 Step 2: Filtering by discriminator only...");
     let filters = vec![
         RpcFilterType::Memcmp(Memcmp::new_base58_encoded(
             0, // offset: discriminator is at the start
             &MARKET_DISCRIMINATOR,
         )),
-        // Additional filter: minimum data size for Market accounts (observed: 1132 bytes)
-        RpcFilterType::DataSize(1132),
+        // Removed DataSize filter to debug
     ];
 
     let config = RpcProgramAccountsConfig {
@@ -55,7 +74,7 @@ pub async fn scan_markets(
         .get_program_accounts_with_config(program_id, config)
         .await?;
 
-    info!("✅ Found {} potential market accounts", accounts.len());
+    info!("✅ Found {} accounts matching discriminator", accounts.len());
 
     let mut markets = Vec::new();
 
