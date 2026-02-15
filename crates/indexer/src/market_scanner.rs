@@ -138,21 +138,11 @@ fn parse_market_account(
         return Err("Invalid market discriminator".into());
     }
 
-    // Parse name at offset ~400 (after all the pubkeys and options)
-    // The actual offset depends on the exact struct layout
-    // For OpenBook V2, the name is 16 bytes at a specific offset
-    let name_offset = 8 + // discriminator
-        32 + // admin
-        32 + // market_authority
-        32 + // bids
-        32 + // asks
-        32 + // event_heap
-        33 + // oracle_a (Option<Pubkey>: 1 + 32)
-        33 + // oracle_b
-        33 + // collect_fee_admin (Option)
-        33 + // open_orders_admin (Option)
-        33 + // consume_events_admin (Option)
-        33; // close_market_admin (Option)
+    // Parse name at offset 184 (for custom OpenBook deployment)
+    // Note: This offset is different from official OpenBook V2
+    // The custom deployment has a shorter struct layout before the name field
+    // Verified by analyzing raw account data: "MARKET" string found at offset 184
+    let name_offset = 184;
 
     let name_bytes = if data.len() > name_offset + 16 {
         &data[name_offset..name_offset + 16]
