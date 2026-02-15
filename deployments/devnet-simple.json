@@ -1,0 +1,12 @@
+{
+  "network": "devnet",
+  "rpc": "https://api.devnet.solana.com",
+  "programs": {
+    "openbook_v2": "GesS1wVm85uRvvjYDAgCVK9MJU5icjsX3LX6GMfibKW1"
+  },
+  "markets": {},
+  "tokens": {},
+  "deployer": "HDsWR5v5RrNcxc2wnP4anehG1Ub41UoGsmY7kaKFALyt",
+  "timestamp": "2026-02-15T03:00:00Z",
+  "deploymentComplete": false
+}

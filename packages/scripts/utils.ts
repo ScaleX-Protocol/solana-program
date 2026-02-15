@@ -21,8 +21,9 @@ import { MintUtils } from "./mint_utils";
 // RPC URL - respects SOLANA_RPC_URL environment variable
 export const RPC = process.env.SOLANA_RPC_URL || "http://127.0.0.1:8899";
 
+// OpenBook Program ID - use custom deployment or default to official
 export const programId = new PublicKey(
-  "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb"
+  process.env.OPENBOOK_PROGRAM_ID || "GesS1wVm85uRvvjYDAgCVK9MJU5icjsX3LX6GMfibKW1"
 );
 
 export const authorityFile = process.env.ANCHOR_WALLET || `${os.homedir()}/.config/solana/id.json`;
