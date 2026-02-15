@@ -16,6 +16,20 @@ WALLET="$HOME/.config/solana/id.json"
 cd "$(dirname "$0")/../programs/openbook-v2"
 
 echo "📋 Pre-flight checks..."
+
+# Check if stack overflow fix is applied
+if ! grep -q "Box<Account<'info, TokenAccount>>" programs/openbook-v2/src/accounts_ix/create_market.rs; then
+    echo "⚠️  Stack overflow fix not applied!"
+    echo ""
+    echo "Please apply the patch first:"
+    echo "  cd programs/openbook-v2"
+    echo "  patch -p1 < ../../patches/openbook-v2-stack-overflow-fix.patch"
+    echo ""
+    echo "Or see patches/README.md for manual instructions"
+    exit 1
+fi
+
+echo "✅ Stack overflow fix detected"
 echo "Rust version: $(rustc --version)"
 echo "Anchor version: $(anchor --version)"
 echo "Program ID: $PROGRAM_ID"
