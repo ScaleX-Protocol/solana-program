@@ -1,0 +1,22 @@
+diff --git a/programs/openbook-v2/src/accounts_ix/create_market.rs b/programs/openbook-v2/src/accounts_ix/create_market.rs
+index original..fixed 100644
+--- a/programs/openbook-v2/src/accounts_ix/create_market.rs
++++ b/programs/openbook-v2/src/accounts_ix/create_market.rs
+@@ -39,7 +39,7 @@ pub struct CreateMarket<'info> {
+         associated_token::mint = base_mint,
+         associated_token::authority = market_authority,
+     )]
+-    pub market_base_vault: Account<'info, TokenAccount>,
++    pub market_base_vault: Box<Account<'info, TokenAccount>>,
+     #[account(
+         init,
+         payer = payer,
+@@ -47,7 +47,7 @@ pub struct CreateMarket<'info> {
+         associated_token::mint = quote_mint,
+         associated_token::authority = market_authority,
+     )]
+-    pub market_quote_vault: Account<'info, TokenAccount>,
++    pub market_quote_vault: Box<Account<'info, TokenAccount>>,
+ 
+     #[account(constraint = base_mint.key() != quote_mint.key())]
+     pub base_mint: Box<Account<'info, Mint>>,
