@@ -9,6 +9,7 @@ on:
       - 'Dockerfile.indexer'
       - 'Cargo.toml'
       - 'Cargo.lock'
+      - '.env.solana-devnet'
       - '.github/workflows/deploy-indexer-devnet.yml'
   workflow_dispatch:
     inputs:
