@@ -1,5 +1,6 @@
 # OpenBook Indexer Docker Compose Configuration
 # Uses shared infrastructure from monitoring-tools (postgres-database, redis, timescaledb)
+# Trigger deployment - 2026-02-15
 
 services:
   # OpenBook indexer service
