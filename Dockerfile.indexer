@@ -17,12 +17,12 @@ RUN apt-get update && apt-get install -y \
 # Copy only dependency files first (for layer caching)
 COPY Cargo.toml Cargo.lock ./
 COPY crates/indexer/Cargo.toml ./crates/indexer/
-COPY crates/client/Cargo.toml ./crates/client/
 
 # Create dummy source files to build dependencies
-RUN mkdir -p crates/indexer/src crates/client/src && \
-    echo "fn main() {}" > crates/indexer/src/main.rs && \
-    echo "fn main() {}" > crates/client/src/lib.rs
+RUN mkdir -p crates/indexer/src/bin && \
+    echo "fn main() {}" > crates/indexer/src/bin/api-server.rs && \
+    echo "fn main() {}" > crates/indexer/src/bin/event-listener.rs && \
+    echo "pub fn dummy() {}" > crates/indexer/src/lib.rs
 
 # Build dependencies only (this layer will be cached)
 RUN cargo build --release --bin api-server --bin event-listener && \
