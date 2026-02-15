@@ -20,12 +20,12 @@ COPY crates/indexer/Cargo.toml ./crates/indexer/
 
 # Create dummy source files to build dependencies
 RUN mkdir -p crates/indexer/src/bin && \
-    echo "fn main() {}" > crates/indexer/src/bin/api-server.rs && \
-    echo "fn main() {}" > crates/indexer/src/bin/event-listener.rs && \
+    echo "fn main() {}" > crates/indexer/src/bin/api_server.rs && \
+    echo "fn main() {}" > crates/indexer/src/bin/event_listener.rs && \
     echo "pub fn dummy() {}" > crates/indexer/src/lib.rs
 
 # Build dependencies only (this layer will be cached)
-RUN cargo build --release --bin api-server --bin event-listener && \
+RUN cargo build --release --bin api_server --bin event_listener && \
     rm -rf crates/*/src
 
 # Now copy actual source code
@@ -33,7 +33,7 @@ COPY crates/ ./crates/
 
 # Force rebuild of our code (dependencies are already compiled)
 RUN touch crates/indexer/src/lib.rs && \
-    cargo build --release --bin api-server --bin event-listener
+    cargo build --release --bin api_server --bin event_listener
 
 # ============================================
 # Node.js Builder Stage with pnpm Cache
@@ -72,8 +72,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Rust binaries
-COPY --from=rust-builder /app/target/release/api-server /usr/local/bin/
-COPY --from=rust-builder /app/target/release/event-listener /usr/local/bin/
+COPY --from=rust-builder /app/target/release/api_server /usr/local/bin/
+COPY --from=rust-builder /app/target/release/event_listener /usr/local/bin/
 
 # Copy Node.js runtime and packages
 COPY --from=node-builder /usr/local/bin/node /usr/local/bin/
@@ -97,5 +97,5 @@ EXPOSE 42090
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
   CMD curl -f http://localhost:42090/api/markets || exit 1
 
-# Run both indexer services (api-server + event-listener)
+# Run both indexer services (api_server + event_listener)
 CMD ["/app/scripts/start-indexer.sh"]
