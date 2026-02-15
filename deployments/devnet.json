@@ -1,116 +1,21 @@
 {
   "network": "devnet",
-  "lastUpdated": "2026-02-14T08:00:00Z",
-  "deployments": [
-    {
-      "timestamp": "2026-02-14T08:00:00Z",
-      "commit": "5ddffff1465523e0cd7435364d0f6db6ab80124b",
-      "branch": "main",
-      "deployer": "HDsWR5v5RrNcxc2wnP4anehG1Ub41UoGsmY7kaKFALyt",
-      "workflow_run": "manual",
-      "programs": {
-        "openbook_v2_custom": "GesS1wVm85uRvvjYDAgCVK9MJU5icjsX3LX6GMfibKW1",
-        "openbook_v2_official": "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb",
-        "metaplex_metadata": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-      },
-      "program_details": {
-        "custom_program": {
-          "program_id": "GesS1wVm85uRvvjYDAgCVK9MJU5icjsX3LX6GMfibKW1",
-          "size_bytes": 841496,
-          "deployed_slot": 442052954,
-          "upgrade_authority": "HDsWR5v5RrNcxc2wnP4anehG1Ub41UoGsmY7kaKFALyt",
-          "build_config": {
-            "rust": "1.75.0",
-            "solana": "~1.17.1",
-            "anchor": "0.29.0",
-            "features": ["enable-gpl"]
-          },
-          "deployment_method": "anchor_deploy_with_helius_rpc",
-          "rpc_used": "https://devnet.helius-rpc.com/",
-          "status": "deployed_with_idl_issues",
-          "notes": "Successfully deployed but IDL initialization fails with error 4100. Markets created using official program instead."
-        }
-      },
-      "markets": [
-        {
-          "name": "BTC/USDT",
-          "address": "TBD",
-          "baseMint": "9VRnupsUaCm9t5jcHw9zNpKw8dXtTpmxCxvmycD6gw1Y",
-          "quoteMint": "GXNuR4AE3dbxAyWf5ErHJ3eZMQxBSh1oZt31xw81bnZg",
-          "baseLotSize": "100",
-          "quoteLotSize": "10",
-          "program_id": "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb",
-          "creation_tx": "3k6recEPyn9dvTr9ULaHn62rr7u7ujk8EkDAYK6A6ym3Vn4VXbeRRyYPgwzSoBUUT7oKFGW6QCkE9HXj1noD2LeQ",
-          "explorer_url": "https://explorer.solana.com/tx/3k6recEPyn9dvTr9ULaHn62rr7u7ujk8EkDAYK6A6ym3Vn4VXbeRRyYPgwzSoBUUT7oKFGW6QCkE9HXj1noD2LeQ?cluster=devnet"
-        },
-        {
-          "name": "WETH/USDT",
-          "address": "TBD",
-          "baseMint": "GWVi6uYP3Fmx3rT5itWD6btG2EW6Xhxhw5bWVPSLAZPo",
-          "quoteMint": "GXNuR4AE3dbxAyWf5ErHJ3eZMQxBSh1oZt31xw81bnZg",
-          "baseLotSize": "100",
-          "quoteLotSize": "10",
-          "program_id": "opnb2LAfJYbRMAHHvqjCwQxanZn7ReEHp1k81EohpZb",
-          "creation_tx": "2cFLz2ciovTqd5B3DAtSjgndBfrP9pLS14F7XPEdWH6YUjRNprY4gySHppMLVy7nkBMcnhkoSx3g6QCxTD23NR8F",
-          "explorer_url": "https://explorer.solana.com/tx/2cFLz2ciovTqd5B3DAtSjgndBfrP9pLS14F7XPEdWH6YUjRNprY4gySHppMLVy7nkBMcnhkoSx3g6QCxTD23NR8F?cluster=devnet"
-        }
-      ],
-      "tokens": [
-        {
-          "symbol": "BTC",
-          "name": "Bitcoin",
-          "address": "9VRnupsUaCm9t5jcHw9zNpKw8dXtTpmxCxvmycD6gw1Y",
-          "decimals": 8,
-          "explorer_url": "https://explorer.solana.com/address/9VRnupsUaCm9t5jcHw9zNpKw8dXtTpmxCxvmycD6gw1Y?cluster=devnet"
-        },
-        {
-          "symbol": "USDT",
-          "name": "Tether USD",
-          "address": "GXNuR4AE3dbxAyWf5ErHJ3eZMQxBSh1oZt31xw81bnZg",
-          "decimals": 6,
-          "explorer_url": "https://explorer.solana.com/address/GXNuR4AE3dbxAyWf5ErHJ3eZMQxBSh1oZt31xw81bnZg?cluster=devnet"
-        },
-        {
-          "symbol": "WETH",
-          "name": "Wrapped Ethereum",
-          "address": "GWVi6uYP3Fmx3rT5itWD6btG2EW6Xhxhw5bWVPSLAZPo",
-          "decimals": 9,
-          "explorer_url": "https://explorer.solana.com/address/GWVi6uYP3Fmx3rT5itWD6btG2EW6Xhxhw5bWVPSLAZPo?cluster=devnet"
-        }
-      ],
-      "configuration": {
-        "solana_cli": "1.18.23",
-        "rust": "1.75.0",
-        "anchor": "0.28.0",
-        "node": "v20.11.0"
-      },
-      "rpc_endpoint": "https://api.devnet.solana.com",
-      "helius_rpc": "https://devnet.helius-rpc.com/",
-      "deployer_balance_before": "11.43 SOL",
-      "deployer_balance_after": "1.73 SOL",
-      "deployment_cost": "9.70 SOL",
-      "status": "active",
-      "services": {
-        "indexer": {
-          "status": "building",
-          "docker_image": "devnet-openbook-indexer",
-          "port": 42090,
-          "database": "openbook_devnet",
-          "notes": "Building with Rust 1.93.0"
-        }
-      }
-    }
-  ],
-  "metadata": {
-    "last_deployment_method": "manual_cli",
-    "preferred_rpc": "helius_devnet",
-    "monitoring": {
-      "indexer_url": "http://localhost:42090",
-      "health_endpoint": "http://localhost:42090/health"
-    },
-    "documentation": {
-      "deployment_guide": "DEVNET_DEPLOYMENT.md",
-      "markets_guide": "DEVNET_MARKETS_DEPLOYED.md"
-    }
-  }
+  "rpc": "https://api.devnet.solana.com",
+  "programs": {
+    "openbook_v2": "GesS1wVm85uRvvjYDAgCVK9MJU5icjsX3LX6GMfibKW1"
+  },
+  "markets": {
+    "BTC_USDT": "pending",
+    "WETH_USDT": "pending"
+  },
+  "tokens": {
+    "BTC": "EuMVKEbrUvt1otSEoWLSd43srGHTPaqFE44w2gKxXrsZ",
+    "USDT": "A4DF6GSZ3S9aEhLoNqrrRcziGREywXunixd83B9BPSpN",
+    "WETH": "J1yrfjVzZdej3R3Jf8S5K731WqPpw6faEcHQoKGjruEC"
+  },
+  "deployer": "HDsWR5v5RrNcxc2wnP4anehG1Ub41UoGsmY7kaKFALyt",
+  "timestamp": "2026-02-15T03:40:00Z",
+  "deploymentComplete": false,
+  "tokensCreated": true,
+  "marketsCreated": false
 }
