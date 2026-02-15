@@ -1,4 +1,8 @@
-# Multi-stage build for OpenBook Indexer
+# Optimized Multi-stage build for OpenBook Indexer with Dependency Caching
+
+# ============================================
+# Rust Builder Stage with Dependency Caching
+# ============================================
 FROM rust:1.93.0-slim as rust-builder
 
 WORKDIR /app
@@ -10,14 +14,30 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Rust workspace
+# Copy only dependency files first (for layer caching)
 COPY Cargo.toml Cargo.lock ./
+COPY crates/indexer/Cargo.toml ./crates/indexer/
+COPY crates/client/Cargo.toml ./crates/client/
+
+# Create dummy source files to build dependencies
+RUN mkdir -p crates/indexer/src crates/client/src && \
+    echo "fn main() {}" > crates/indexer/src/main.rs && \
+    echo "fn main() {}" > crates/client/src/lib.rs
+
+# Build dependencies only (this layer will be cached)
+RUN cargo build --release --bin api-server --bin event-listener && \
+    rm -rf crates/*/src
+
+# Now copy actual source code
 COPY crates/ ./crates/
 
-# Build indexer binaries
-RUN cargo build --release --bin api-server --bin event-listener
+# Force rebuild of our code (dependencies are already compiled)
+RUN touch crates/indexer/src/lib.rs && \
+    cargo build --release --bin api-server --bin event-listener
 
-# Node.js stage for TypeScript scripts
+# ============================================
+# Node.js Builder Stage with pnpm Cache
+# ============================================
 FROM node:18-alpine as node-builder
 
 WORKDIR /app
@@ -25,16 +45,19 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files
+# Copy package files first (for layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/ ./packages/
+COPY packages/*/package.json ./packages/
 
-# Install dependencies
+# Install dependencies (this layer will be cached)
 RUN pnpm install --frozen-lockfile
 
-# No build step needed - packages use ts-node directly
+# Copy source code
+COPY packages/ ./packages/
 
-# Final runtime stage
+# ============================================
+# Final Runtime Stage
+# ============================================
 FROM debian:bookworm-slim
 
 WORKDIR /app
@@ -52,7 +75,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=rust-builder /app/target/release/api-server /usr/local/bin/
 COPY --from=rust-builder /app/target/release/event-listener /usr/local/bin/
 
-# Copy Node.js runtime and built packages
+# Copy Node.js runtime and packages
 COPY --from=node-builder /usr/local/bin/node /usr/local/bin/
 COPY --from=node-builder /app/node_modules ./node_modules
 COPY --from=node-builder /app/packages ./packages

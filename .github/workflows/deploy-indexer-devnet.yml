@@ -104,8 +104,16 @@ jobs:
         # Force cleanup Docker networking
         docker network prune -f || true
 
-        # Deploy new version
-        docker-compose -f docker-compose.indexer.yml -p solana-devnet up -d --build
+        # Smart rebuild: only rebuild if force_rebuild is true or if no cached image exists
+        if [ "${{ github.event.inputs.force_rebuild }}" = "true" ]; then
+          echo "🔨 Force rebuild requested - building from scratch..."
+          docker-compose -f docker-compose.indexer.yml -p solana-devnet build --no-cache
+          docker-compose -f docker-compose.indexer.yml -p solana-devnet up -d
+        else
+          echo "🚀 Using Docker layer cache for faster builds..."
+          # Build with cache, only rebuild changed layers
+          docker-compose -f docker-compose.indexer.yml -p solana-devnet up -d --build
+        fi
 
         echo "✓ Indexer deployed"
 
